@@ -60,8 +60,10 @@ def command_line_arguments(command_line_parameters):
   parser.add_argument('-s', '--sort', action='store_true', help = "Sort the results")
   parser.add_argument('-k', '--sort-key', dest='key', default = 'nonorm-dev', choices= ('nonorm-dev','nonorm-eval','ztnorm-dev','ztnorm-eval','dir'),
       help = "Sort the results according to the given key")
-  parser.add_argument('-c', '--criterion', dest='criterion', default = 'EER', choices = ('EER', 'HTER', 'FAR'),
+  parser.add_argument('-c', '--criterion', dest='criterion', default = 'EER', choices = ('EER', 'HTER', 'FAR', 'RR'),
       help = "Minimize the threshold on the development set according to the given criterion")
+  parser.add_argument('-r', '--rank', type=int, default = 1, help = "Specify the rank, for which the recognition rate is computed (only valid for --criterion=RR)")
+  parser.add_argument('-t', '--top', type=int, help = "If specified, only the top N results will be shown.")
 
   parser.add_argument('-o', '--output', help = "Name of the output file that will contain the EER/HTER scores")
   parser.add_argument('--parser', default = '4column', choices = ('4column', '5column'), help="The style of the resulting score files; rarely changed")
@@ -76,7 +78,10 @@ def command_line_arguments(command_line_parameters):
   bob.core.log.set_verbosity_level(logger, args.verbose)
 
   # assign the score file parser
-  args.parser = {'4column' : bob.measure.load.split_four_column, '5column' : bob.measure.load.split_five_column}[args.parser]
+  if args.criterion in ('RR',):
+    args.parser = {'4column' : bob.measure.load.cmc_four_column, '5column' : bob.measure.load.cmc_five_column}[args.parser]
+  else:
+    args.parser = {'4column' : bob.measure.load.split_four_column, '5column' : bob.measure.load.split_five_column}[args.parser]
 
   return args
 
@@ -90,34 +95,50 @@ class Result:
     self.ztnorm_dev = None
     self.ztnorm_eval = None
 
+  def is_valid(self):
+    return any(a is not None for a in (self.nonorm_dev, self.nonorm_eval, self.ztnorm_dev, self.ztnorm_eval))
+
   def _calculate(self, dev_file, eval_file = None):
     """Calculates the EER and HTER or FRR based on the threshold criterion."""
-    dev_neg, dev_pos = self.m_args.parser(dev_file)
 
-    # switch which threshold function to use;
-    # THIS f***ing piece of code really is what python authors propose:
-    threshold = {
-      'EER'  : bob.measure.eer_threshold,
-      'HTER' : bob.measure.min_hter_threshold,
-      'FAR'  : bob.measure.far_threshold
-    } [self.m_args.criterion](dev_neg, dev_pos)
+    if self.m_args.criterion == 'RR':
+      dev_cmc = self.m_args.parser(dev_file)
+      dev_rr = bob.measure.cmc(dev_cmc)[self.m_args.rank-1]
 
-    # compute far and frr for the given threshold
-    dev_far, dev_frr = bob.measure.farfrr(dev_neg, dev_pos, threshold)
-    dev_hter = (dev_far + dev_frr)/2.0
+      if eval_file:
+        eval_cmc = self.m_args.parser(eval_file)
+        eval_rr = bob.measure.cmc(eval_cmc)[self.m_args.rank-1]
+      else:
+        eval_rr = None
+      return (dev_rr, eval_rr)
 
-    if eval_file:
-      eval_neg, eval_pos = self.m_args.parser(eval_file)
-      eval_far, eval_frr = bob.measure.farfrr(eval_neg, eval_pos, threshold)
-      eval_hter = (eval_far + eval_frr)/2.0
     else:
-      eval_hter = None
-      eval_frr = None
+      dev_neg, dev_pos = self.m_args.parser(dev_file)
 
-    if self.m_args.criterion == 'FAR':
-      return (dev_frr, eval_frr)
-    else:
-      return (dev_hter, eval_hter)
+      # switch which threshold function to use;
+      # THIS f***ing piece of code really is what python authors propose:
+      threshold = {
+        'EER'  : bob.measure.eer_threshold,
+        'HTER' : bob.measure.min_hter_threshold,
+        'FAR'  : bob.measure.far_threshold
+      } [self.m_args.criterion](dev_neg, dev_pos)
+
+      # compute far and frr for the given threshold
+      dev_far, dev_frr = bob.measure.farfrr(dev_neg, dev_pos, threshold)
+      dev_hter = (dev_far + dev_frr)/2.0
+
+      if eval_file:
+        eval_neg, eval_pos = self.m_args.parser(eval_file)
+        eval_far, eval_frr = bob.measure.farfrr(eval_neg, eval_pos, threshold)
+        eval_hter = (eval_far + eval_frr)/2.0
+      else:
+        eval_hter = None
+        eval_frr = None
+
+      if self.m_args.criterion == 'FAR':
+        return (dev_frr, eval_frr)
+      else:
+        return (dev_hter, eval_hter)
 
   def nonorm(self, dev_file, eval_file = None):
     self.nonorm_dev, self.nonorm_eval = self._calculate(dev_file, eval_file)
@@ -168,7 +189,7 @@ def add_results(args, nonorm, ztnorm = None):
 
 def recurse(args, path):
   """Recurse the directory structure and collect all results that are stored in the desired file names."""
-  dir_list = os.listdir(path)
+  dir_list = sorted(os.listdir(path))
 
   # check if the score directories are included in the current path
   if args.nonorm in dir_list:
@@ -188,7 +209,8 @@ def table():
   A = " "*2 + 'dev  nonorm'+ " "*5 + 'dev  ztnorm' + " "*6 + 'eval nonorm' + " "*4 + 'eval ztnorm' + " "*12 + 'directory\n'
   A += "-"*100+"\n"
   for r in results:
-    A += str(r) + "\n"
+    if r.is_valid():
+      A += str(r) + "\n"
   return A
 
 
@@ -203,8 +225,12 @@ def main(command_line_parameters = None):
 
   # sort results if desired
   if args.sort:
+    global results
     import operator
-    results.sort(key=operator.attrgetter(args.key.replace('-','_')))
+    results.sort(key=operator.attrgetter(args.key.replace('-','_')), reverse=args.criterion in ("RR",))
+
+    if args.top is not None:
+      results = results[:args.top]
 
   # print the results
   if args.self_test:

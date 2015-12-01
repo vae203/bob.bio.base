@@ -56,11 +56,15 @@ def command_line_arguments(command_line_parameters):
 
   parser.add_argument('-s', '--directory', default = '.', help = "A directory, where to find the --dev-files and the --eval-files")
 
+  parser.add_argument('-i', '--ignore-scores', type=float, help = "If given, all scores below the given value will be ignored in the evaluation.")
+  parser.add_argument('-a', '--average-results', action='store_true', help = "If given, the average of the final numbers (EER, HTER, RR) is reported as well")
+
   parser.add_argument('-c', '--criterion', choices = ('EER', 'HTER'), help = "If given, the threshold of the development set will be computed with this criterion.")
   parser.add_argument('-x', '--cllr', action = 'store_true', help = "If given, Cllr and minCllr will be computed.")
   parser.add_argument('-m', '--mindcf', action = 'store_true', help = "If given, minDCF will be computed.")
   parser.add_argument('--cost', default=0.99,  help='Cost for FAR in minDCF')
   parser.add_argument('-r', '--rr', action = 'store_true', help = "If given, the Recognition Rate will be computed.")
+  parser.add_argument('--rank', type=int, help = "If given, the Recognition Rate will be computed at the given rank; must be positive.")
   parser.add_argument('-l', '--legends', nargs='+', help = "A list of legend strings used for ROC, CMC and DET plots; if given, must be the same number than --dev-files.")
   parser.add_argument('-F', '--legend-font-size', type=int, default=18, help = "Set the font size of the legends.")
   parser.add_argument('-P', '--legend-position', type=int, help = "Set the font size of the legends.")
@@ -91,6 +95,10 @@ def command_line_arguments(command_line_parameters):
   # check that the legends have the same length as the dev-files
   if len(args.dev_files) != len(args.legends):
     logger.error("The number of --dev-files (%d) and --legends (%d) are not identical", len(args.dev_files), len(args.legends))
+
+  if args.rank is not None and args.rank <= 0:
+    logger.error("The given rank %d is invalid, it must be greater or equal to 1", args.rank)
+
 
   return args
 
@@ -147,6 +155,9 @@ def _plot_cmc(cmcs, colors, labels, title, fontsize=18, position=None):
   max_x = 0
   # plot the DET curves
   for i in range(len(cmcs)):
+    if not cmcs[i]:
+      logger.warn("Skipping CMC scores of %s since they are empty", labels[i])
+      continue
     x = bob.measure.plot.cmc(cmcs[i], figure=figure, color=colors[i], lw=2, ms=10, mew=1.5, label=labels[i])
     max_x = max(x, max_x)
 
@@ -176,11 +187,11 @@ def main(command_line_parameters=None):
 
     # First, read the score files
     logger.info("Loading %d score files of the development set", len(args.dev_files))
-    scores_dev = [score_parser(os.path.join(args.directory, f)) for f in args.dev_files]
+    scores_dev = [score_parser(os.path.join(args.directory, f), args.ignore_scores) for f in args.dev_files]
 
     if args.eval_files:
       logger.info("Loading %d score files of the evaluation set", len(args.eval_files))
-      scores_eval = [score_parser(os.path.join(args.directory, f)) for f in args.eval_files]
+      scores_eval = [score_parser(os.path.join(args.directory, f), args.ignore_scores) for f in args.eval_files]
 
 
     if args.criterion:
@@ -267,12 +278,30 @@ def main(command_line_parameters=None):
         raise RuntimeError("During plotting of ROC curves, the following exception occured:\n%s\nUsually this happens when the label contains characters that LaTeX cannot parse." % e)
 
 
-  if args.cmc or args.rr:
+  if args.cmc or args.rr or args.rank is not None:
     logger.info("Loading CMC data on the development " + ("and on the evaluation set" if args.eval_files else "set"))
     cmc_parser = {'4column' : bob.measure.load.cmc_four_column, '5column' : bob.measure.load.cmc_five_column}[args.parser]
-    cmcs_dev = [cmc_parser(os.path.join(args.directory, f)) for f in args.dev_files]
+    cmcs_dev = [cmc_parser(os.path.join(args.directory, f), args.ignore_scores) for f in args.dev_files]
     if args.eval_files:
-      cmcs_eval = [cmc_parser(os.path.join(args.directory, f)) for f in args.eval_files]
+      cmcs_eval = [cmc_parser(os.path.join(args.directory, f), args.ignore_scores) for f in args.eval_files]
+
+  if args.rank is not None:
+    logger.info("Computing recognition rate at rank %d on the development " % args.rank + ("and on the evaluation set" if args.eval_files else "set"))
+    average_dev, average_eval = [], []
+    for i in range(len(cmcs_dev)):
+      rr = bob.measure.cmc(cmcs_dev[i])[args.rank-1]
+      average_dev.append(rr)
+      print("The Rank %d Recognition Rate of the development set of '%s' is %2.3f%%" % (args.rank, args.legends[i], rr * 100.))
+      if args.eval_files:
+        rr = bob.measure.cmc(cmcs_eval[i])[args.rank-1]
+        average_eval.append(rr)
+        print("The Rank %d Recognition Rate of the development set of '%s' is %2.3f%%" % (args.rank, args.legends[i], rr * 100.))
+
+    if args.average_results:
+      print("The average Rank %d Recognition Rate of the development set is %2.3f%%" % (args.rank, numpy.mean(average_dev) * 100.))
+      if args.eval_files:
+        print("The average Rank %d Recognition Rate of the evaluation set is %2.3f%%" % (args.rank, numpy.mean(average_eval) * 100.))    
+
 
   if args.cmc:
     logger.info("Plotting CMC curves to file '%s'", args.cmc)
@@ -289,9 +318,17 @@ def main(command_line_parameters=None):
 
   if args.rr:
     logger.info("Computing recognition rate on the development " + ("and on the evaluation set" if args.eval_files else "set"))
+    average_dev, average_eval = [], []
     for i in range(len(cmcs_dev)):
       rr = bob.measure.recognition_rate(cmcs_dev[i])
+      average_dev.append(rr)
       print("The Recognition Rate of the development set of '%s' is %2.3f%%" % (args.legends[i], rr * 100.))
       if args.eval_files:
         rr = bob.measure.recognition_rate(cmcs_eval[i])
+        average_eval.append(rr)
         print("The Recognition Rate of the development set of '%s' is %2.3f%%" % (args.legends[i], rr * 100.))
+
+    if args.average_results:
+      print("The average Recognition Rate of the development set is %2.3f%%" % (numpy.mean(average_dev) * 100.))
+      if args.eval_files:
+        print("The average Recognition Rate of the evaluation set is %2.3f%%" % (numpy.mean(average_eval) * 100.))
