@@ -37,10 +37,13 @@ def selected_indices(total_number_of_indices, desired_number_of_indices = None):
   """Returns a list of indices that will contain exactly the number of desired indices (or the number of total items in the list, if this is smaller).
   These indices are selected such that they are evenly spread over the whole sequence."""
   if desired_number_of_indices is None or desired_number_of_indices >= total_number_of_indices or desired_number_of_indices < 0:
-    return range(total_number_of_indices)
-  increase = float(total_number_of_indices)/float(desired_number_of_indices)
-  # generate a regular quasi-random index list
-  return [int((i +.5)*increase) for i in range(desired_number_of_indices)]
+    for i in xrange(total_number_of_indices):
+      yield i
+  else:
+    increase = float(total_number_of_indices)/float(desired_number_of_indices)
+    # generate a regular quasi-random index list
+    for i in xrange(desired_number_of_indices):
+      yield int((i +.5)*increase)
 
 
 def selected_elements(list_of_elements, desired_number_of_elements = None):

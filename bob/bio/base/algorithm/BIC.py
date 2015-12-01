@@ -126,10 +126,10 @@ class BIC (Algorithm):
     if self.maximum_pair_count is not None:
       if len(intra_pairs) > self.maximum_pair_count:
         logger.info("  -> Limiting intrapersonal pairs from %d to %d" %(len(intra_pairs), self.maximum_pair_count))
-        intra_pairs = utils.selected_elements(intra_pairs, self.maximum_pair_count)
+        intra_pairs = list(utils.selected_elements(intra_pairs, self.maximum_pair_count))
       if len(extra_pairs) > self.maximum_pair_count:
         logger.info("  -> Limiting extrapersonal pairs from %d to %d" %(len(extra_pairs), self.maximum_pair_count))
-        extra_pairs = utils.selected_elements(extra_pairs, self.maximum_pair_count)
+        extra_pairs = list(utils.selected_elements(extra_pairs, self.maximum_pair_count))
 
 
     # train the BIC Machine with these pairs
