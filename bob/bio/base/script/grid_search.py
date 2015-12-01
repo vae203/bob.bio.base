@@ -77,16 +77,16 @@ def command_line_options(command_line_parameters):
   parser.add_argument('-x', '--executable', metavar='X',
       help = '(optional) The executable to be executed instead of bob/bio/base/verify.py (taken *always* from bob.bio.base, not from the bin directory)')
 
-  parser.add_argument('-R', '--result-directory', metavar='DIR',
+  parser.add_argument('-R', '--result-directory', metavar='DIR', default="/mgunther/grid_search/results",
       help = 'The directory where to write the resulting score files to.')
 
-  parser.add_argument('-T', '--temp-directory', metavar='DIR',
+  parser.add_argument('-T', '--temp-directory', metavar='DIR', default="/mgunther/grid_search/temp",
       help = 'The directory where to write temporary files into.')
 
   parser.add_argument('-i', '--preprocessed-directory', metavar='DIR',
       help = '(optional) The directory where to read the already preprocessed data from (no preprocessing is performed in this case).')
 
-  parser.add_argument('-G', '--gridtk-database-directory', metavar='DIR', default = 'grid_db',
+  parser.add_argument('-G', '--gridtk-database-directory', metavar='DIR',  default="/mgunther/grid_search/grid",
       help = 'Directory where the submitted.sql3 files should be written into (will create sub-directories on need)')
 
   parser.add_argument('-w', '--write-commands',
