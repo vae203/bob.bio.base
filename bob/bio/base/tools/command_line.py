@@ -217,7 +217,7 @@ def initialize(parsers, command_line_parameters = None, skips = []):
   if args.temp_directory is None:
     args.temp_directory = "/idiap/temp/%s/%s" % (os.environ["USER"], args.database.name) if is_idiap() else "/mgunther/temp"
   if args.result_directory is None:
-    args.result_directory = "/idiap/user/%s/%s" % (os.environ["USER"], args.database.name) if is_idiap() else "/mgunther/results"
+    args.result_directory = "/idiap/user/%s/%s" % (os.environ["USER"], args.database.name) if is_idiap() else "/home/mgunther/experiments/results"
 
   args.temp_directory = os.path.join(args.temp_directory, args.sub_directory)
   args.result_directory = os.path.join(args.result_directory, args.sub_directory)
