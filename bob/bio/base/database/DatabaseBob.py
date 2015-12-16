@@ -163,10 +163,10 @@ class DatabaseBob (Database):
     return self.sort(self.database.objects(protocol = self.protocol, groups = groups, **self.all_files_options))
 
 
-  def training_files(self, step = None, arrange_by_client = False):
-    """training_files(step = None, arrange_by_client = False) -> files
+  def training_files(self, step = None):
+    """training_files(step = None) -> files
 
-    Returns all training files for the given step, and arranges them by client, if desired, respecting the current protocol.
+    Returns all training files for the given step, respecting the current protocol.
     The files for the steps can be limited using the ``..._training_options`` defined in the constructor.
 
     **Parameters:**
@@ -174,15 +174,10 @@ class DatabaseBob (Database):
     step : one of ``('train_extractor', 'train_projector', 'train_enroller')`` or ``None``
       The step for which the training data should be returned.
 
-    arrange_by_client : bool
-      Should the training files be arranged by client?
-      If set to ``True``, training files will be returned in [[:py:class:`bob.db.verification.utils.File`]], where each sub-list contains the files of a single client.
-      Otherwise, all files will be stored in a simple [:py:class:`bob.db.verification.utils.File`].
-
     **Returns:**
 
-    files : [:py:class:`bob.db.verification.utils.File`] or [[:py:class:`bob.db.verification.utils.File`]]
-      The (arranged) list of files used for the training of the given step.
+    files : [:py:class:`bob.db.verification.utils.File`]
+      The list of files used for the training of the given step.
     """
     if step is None:
       training_options = self.all_files_options
@@ -195,11 +190,8 @@ class DatabaseBob (Database):
     else:
       raise ValueError("The given step '%s' must be one of ('train_extractor', 'train_projector', 'train_enroller')" % step)
 
-    files = self.sort(self.database.objects(protocol = self.protocol, groups = 'world', **training_options))
-    if arrange_by_client:
-      return self.arrange_by_client(files)
-    else:
-      return files
+    return self.sort(self.database.objects(protocol = self.protocol, groups = 'world', **training_options))
+
 
   def test_files(self, groups = ['dev']):
     """test_files(groups = ['dev']) -> files
@@ -265,7 +257,7 @@ class DatabaseBob (Database):
 
     **Parameters:**
 
-    model_id : int or str
+    model_id : int or str or ``None``
       A unique ID that identifies the model.
 
     group : one of ``('dev', 'eval')``
@@ -276,7 +268,10 @@ class DatabaseBob (Database):
     files : [:py:class:`bob.db.verification.utils.File`]
       The list of files used for to enroll the model with the given model id.
     """
-    return self.sort(self.database.objects(protocol = self.protocol, groups = group, model_ids = (model_id,), purposes = 'enroll', **self.all_files_options))
+    if model_id is None:
+      return self.sort(self.database.objects(protocol = self.protocol, groups = group, purposes = 'enroll', **self.all_files_options))
+    else:
+      return self.sort(self.database.objects(protocol = self.protocol, groups = group, model_ids = (model_id,), purposes = 'enroll', **self.all_files_options))
 
 
   def probe_files(self, model_id = None, group = 'dev'):

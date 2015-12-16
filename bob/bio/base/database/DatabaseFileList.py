@@ -51,7 +51,7 @@ class DatabaseFileList (DatabaseBobZT):
 
 
   def all_files(self, groups = ['dev']):
-    """all_files(groups=None) -> files
+    """all_files(groups=['dev']) -> files
 
     Returns all files of the database, respecting the current protocol.
     If the current protocol is ``'None'``, ``None`` will be used instead.
