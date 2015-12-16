@@ -118,7 +118,7 @@ class Database:
 
     **Parameters:**
 
-    files : :py:class:`File`
+    files : [:py:class:`File`]
       A list of files that should be split up by :py:attr:`File.client_id`.
 
     **Returns:**
@@ -247,7 +247,7 @@ class Database:
     raise NotImplementedError("Please implement this function in derived classes")
 
 
-  def training_files(self, step = None, arrange_by_client = False):
+  def training_files(self, step = None):
     """training_files(step = None, arrange_by_client = False) -> files
 
     Returns all training File objects for the given step, and arranges them by client, if desired.
@@ -259,16 +259,10 @@ class Database:
       The step for which the training data should be returned.
       Might be ignored in derived class implementations.
 
-    arrange_by_client : bool
-      Should the training files be arranged by client?
-
-      .. note::
-         You can use :py:meth:`arrange_by_client` in derived class implementations to arrange the files.
-
     **Returns:**
 
     files : [:py:class:`File`] or [[:py:class:`File`]]
-      The (arranged) list of files used for the training of the given step.
+      The list of files used for the training of the given step.
     """
     raise NotImplementedError("Please implement this function in derived classes")
 

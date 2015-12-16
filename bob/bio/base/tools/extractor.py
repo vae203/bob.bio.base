@@ -81,8 +81,8 @@ def extract(extractor, preprocessor, groups=None, indices = None, force = False)
   # the file selector object
   fs = FileSelector.instance()
   extractor.load(fs.extractor_file)
-  data_files = fs.preprocessed_data_list(groups=groups)
-  feature_files = fs.feature_list(groups=groups)
+  data_files = fs.preprocessed_list(groups=groups)
+  feature_files = fs.extracted_list(groups=groups)
 
   # select a subset of indices to iterate
   if indices is not None:

@@ -90,7 +90,7 @@ def project(algorithm, extractor, groups = None, indices = None, force = False):
   # load the projector
   algorithm.load_projector(fs.projector_file)
 
-  feature_files = fs.feature_list(groups=groups)
+  feature_files = fs.extracted_list(groups=groups)
   projected_files = fs.projected_list(groups=groups)
 
   # select a subset of indices to iterate

@@ -16,7 +16,7 @@ class DummyDatabase (DatabaseBobZT):
         name = 'test',
         check_original_files_for_existence = True,
         training_depends_on_protocol = False,
-        models_depend_on_protocol = False
+        models_depend_on_protocol = True
     )
 
   def all_files(self, groups = ['dev']):

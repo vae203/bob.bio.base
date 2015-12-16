@@ -53,6 +53,9 @@ class FileSelector:
     The extension for writing compressed score files.
     By default, no compression is performed.
 
+  train_on_enroll : str
+    Select the data, on which the algorithms are trained.
+    Options are ``no`` for using only the training set, ``only`` for only th enrollment set and ``add`` for both training and enrollment set.
   """
 
   def __init__(
@@ -68,7 +71,8 @@ class FileSelector:
     score_directories,
     zt_score_directories = None,
     default_extension = '.hdf5',
-    compressed_extension = ''
+    compressed_extension = '',
+    train_on_enroll = 'no'
   ):
 
     """Initialize the file selector object with the current configuration."""
@@ -82,6 +86,7 @@ class FileSelector:
     self.zt_score_directories = zt_score_directories
     self.default_extension = default_extension
     self.compressed_extension = compressed_extension
+    self.train_on_enroll = train_on_enroll
 
     self.directories = {
       'original'     : database.original_directory,
@@ -118,11 +123,11 @@ class FileSelector:
     """Returns the annotations of the given file."""
     return self.database.annotations(annotation_file)
 
-  def preprocessed_data_list(self, groups = None):
+  def preprocessed_list(self, groups = None):
     """Returns the list of preprocessed data files."""
     return self.get_paths(self.database.all_files(groups=groups), "preprocessed")
 
-  def feature_list(self, groups = None):
+  def extracted_list(self, groups = None):
     """Returns the list of extracted feature files."""
     return self.get_paths(self.database.all_files(groups=groups), "extracted")
 
@@ -137,8 +142,15 @@ class FileSelector:
     The directory_type might be any of 'preprocessed', 'extracted', or 'projected'.
     The step might by any of 'train_extractor', 'train_projector', or 'train_enroller'.
     If arrange_by_client is enabled, a list of lists (one list for each client) is returned."""
-    files = self.database.training_files(step, arrange_by_client)
+    files = []
+    if self.train_on_enroll in ('no', 'add'):
+      files.extend(self.database.training_files(step))
+    if self.train_on_enroll in ('only', 'add'):
+      files.extend(self.database.enroll_files(None))
+    files = self.database.sort(files)
+
     if arrange_by_client:
+      files = self.database.arrange_by_client(files)
       return [self.get_paths(files[client], directory_type) for client in range(len(files))]
     else:
       return self.get_paths(files, directory_type)
