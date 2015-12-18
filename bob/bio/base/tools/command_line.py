@@ -133,6 +133,8 @@ def command_line_parser(description=__doc__, exclude_resources_from=[]):
       help = 'Performs score calibration after the scores are computed.')
   flag_group.add_argument('-z', '--zt-norm', action='store_true',
       help = 'Enable the computation of ZT norms')
+  flag_group.add_argument('-M', '--train-on-enroll', default = 'no', choices = ('no', 'only', 'add'),
+      help = 'Usage of enrollment data for training (not permitted by many protocols!); choices are: no (use only training set), only (use only enroll data for training), add (use both training and enroll data for training)')
   flag_group.add_argument('-r', '--parallel', type=int,
       help = 'This flag is a shortcut for running the commands on the local machine with the given amount of parallel threads; equivalent to --grid bob.bio.base.grid.Grid("local", number_of_parallel_threads=X) --run-local-scheduler --stop-on-failure.')
 
@@ -219,7 +221,7 @@ def initialize(parsers, command_line_parameters = None, skips = []):
   if args.temp_directory is None:
     args.temp_directory = "/idiap/temp/%s/%s" % (os.environ["USER"], args.database.name) if is_idiap() else "/mgunther/temp"
   if args.result_directory is None:
-    args.result_directory = "/idiap/user/%s/%s" % (os.environ["USER"], args.database.name) if is_idiap() else "/mgunther/results"
+    args.result_directory = "/idiap/user/%s/%s" % (os.environ["USER"], args.database.name) if is_idiap() else "/home/mgunther/experiments/results"
 
   args.temp_directory = os.path.join(args.temp_directory, args.sub_directory)
   args.result_directory = os.path.join(args.result_directory, args.sub_directory)
@@ -236,9 +238,10 @@ def initialize(parsers, command_line_parameters = None, skips = []):
   args.info_file = os.path.join(args.result_directory, protocol, args.experiment_info_file)
 
   # sub-directorues that depend on the database
-  extractor_sub_dir = protocol if args.database.training_depends_on_protocol and args.extractor.requires_training else '.'
-  projector_sub_dir = protocol if args.database.training_depends_on_protocol and args.algorithm.requires_projector_training else extractor_sub_dir
-  enroller_sub_dir = protocol if args.database.training_depends_on_protocol and args.algorithm.requires_enroller_training else projector_sub_dir
+  depends_on_protocol = args.database.training_depends_on_protocol or (args.train_on_enroll != 'no' and args.database.models_depend_on_protocol)
+  extractor_sub_dir = protocol if depends_on_protocol and args.extractor.requires_training else '.'
+  projector_sub_dir = protocol if depends_on_protocol and args.algorithm.requires_projector_training else extractor_sub_dir
+  enroller_sub_dir = protocol if depends_on_protocol and args.algorithm.requires_enroller_training else projector_sub_dir
   model_sub_dir = protocol if args.database.models_depend_on_protocol else enroller_sub_dir
 
   # Database directories, which should be automatically replaced
@@ -256,10 +259,11 @@ def initialize(parsers, command_line_parameters = None, skips = []):
     extracted_directory = os.path.join(args.temp_directory, extractor_sub_dir, args.extracted_directory),
     projected_directory = os.path.join(args.temp_directory, projector_sub_dir, args.projected_directory),
     model_directories = [os.path.join(args.temp_directory, model_sub_dir, m) for m in args.model_directories],
-    score_directories = [os.path.join(args.result_directory, protocol, z) for z in args.score_directories],
-    zt_score_directories = [os.path.join(args.temp_directory, protocol, s) for s in args.zt_directories],
+    score_directories = [os.path.join(args.result_directory, protocol, s) for s in args.score_directories],
+    zt_score_directories = [os.path.join(args.temp_directory, protocol, z) for z in args.zt_directories],
     compressed_extension = '.tar.bz2' if args.write_compressed_score_files else '',
     default_extension = '.hdf5',
+    train_on_enroll = args.train_on_enroll,
   )
 
   return args
@@ -282,7 +286,7 @@ def groups(args):
     A list of groups, for which data needs to be treated.
   """
   groups = args.groups[:]
-  if args.extractor.requires_training or args.algorithm.requires_projector_training or args.algorithm.requires_enroller_training:
+  if (args.extractor.requires_training or args.algorithm.requires_projector_training or args.algorithm.requires_enroller_training) and args.train_on_enroll != 'only':
     groups.append('world')
   return groups
 

@@ -34,7 +34,7 @@ def preprocess(preprocessor, groups = None, indices = None, force = False):
 
   # get the file lists
   data_files = fs.original_data_list(groups=groups)
-  preprocessed_data_files = fs.preprocessed_data_list(groups=groups)
+  preprocessed_data_files = fs.preprocessed_list(groups=groups)
 
   # select a subset of keys to iterate
   if indices is not None:

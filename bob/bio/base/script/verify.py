@@ -267,7 +267,7 @@ def execute(args):
         args.extractor,
         args.preprocessor,
         groups = tools.groups(args),
-        indices = tools.indices(fs.preprocessed_data_list(groups=tools.groups(args)), None if args.grid is None else args.grid.number_of_extraction_jobs),
+        indices = tools.indices(fs.preprocessed_list(groups=tools.groups(args)), None if args.grid is None else args.grid.number_of_extraction_jobs),
         force = args.force)
 
   # train the feature projector
@@ -283,7 +283,7 @@ def execute(args):
         args.algorithm,
         args.extractor,
         groups = tools.groups(args),
-        indices = tools.indices(fs.preprocessed_data_list(groups=tools.groups(args)), None if args.grid is None else args.grid.number_of_projection_jobs),
+        indices = tools.indices(fs.extracted_list(groups=tools.groups(args)), None if args.grid is None else args.grid.number_of_projection_jobs),
         force = args.force)
 
   # train the model enroller
