@@ -3,7 +3,7 @@ import tempfile
 import os
 import shutil
 
-def _test_file_selector(command_line, subdir, all_files, train_files):
+def _test_file_selector(command_line, subdir, all_files, train_files, train_clients):
   tempdir = tempfile.mkdtemp(prefix="bobtest_")
   resdir = tempfile.mkdtemp(prefix="bobtest_")
 
@@ -49,9 +49,9 @@ def _test_file_selector(command_line, subdir, all_files, train_files):
 
     # check training files
     training_simple = fs.training_list('extracted', 'train_projector', False)
-    assert len(training_simple) == train_files[0]
+    assert len(training_simple) == train_files
     training_by_client = fs.training_list('projected', 'train_enroller', True)
-    assert len(training_by_client) == train_files[1]
+    assert len(training_by_client) == train_clients
 
     # check enroll files
     model_ids = fs.model_ids('dev')
@@ -88,14 +88,15 @@ def _test_file_selector(command_line, subdir, all_files, train_files):
     if os.path.exists(resdir):
       shutil.rmtree(resdir)
 
+
 def test_file_selector_training():
   # Tests the file selector, in case we train only on the training set (the default)
-  _test_file_selector([], '.', 400, (200,20))
+  _test_file_selector([], '.', 400, 200, 20)
 
 def test_file_selector_models():
   # Tests the file selector in case we train only on the enroll files
-  _test_file_selector(['--train-on-enroll', 'only'], 'Default', 200, (100,20))
+  _test_file_selector(['--train-on-enroll', 'only'], 'Default', 200, 100, 20)
 
 def test_file_selector_both():
   # Tests the file selector in case we train only on both training and enroll files
-  _test_file_selector(['--train-on-enroll', 'add'], 'Default', 400, (300,40))
+  _test_file_selector(['--train-on-enroll', 'add'], 'Default', 400, 300, 40)
