@@ -175,7 +175,7 @@ def _scores_c(algorithm, t_model_ids, group, force):
 
   # probe files:
   probe_objects = fs.probe_objects(group)
-  probe_files = fs.get_paths(probe_objects, 'projected' if algorithm.performs_projection else 'features')
+  probe_files = fs.get_paths(probe_objects, 'projected' if algorithm.performs_projection else 'extracted')
 
   logger.info("- Scoring: computing score matrix C for group '%s'", group)
 
@@ -197,7 +197,7 @@ def _scores_d(algorithm, t_model_ids, group, force):
 
   # probe files:
   z_probe_objects = fs.z_probe_objects(group)
-  z_probe_files = fs.get_paths(z_probe_objects, 'projected' if algorithm.performs_projection else 'features')
+  z_probe_files = fs.get_paths(z_probe_objects, 'projected' if algorithm.performs_projection else 'extracted')
 
   logger.info("- Scoring: computing score matrix D for group '%s'", group)
 

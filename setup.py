@@ -62,6 +62,7 @@ setup(
     # This line is required for any distutils based packaging.
     packages = find_packages(),
     include_package_data = True,
+    zip_safe=False,
 
     # This line defines which packages should be installed when you "install"
     # this package. All packages that are mentioned here, but are not installed
@@ -110,6 +111,7 @@ setup(
         'extract.py        = bob.bio.base.script.extract:main',
         'enroll.py         = bob.bio.base.script.enroll:main',
         'score.py          = bob.bio.base.script.score:main',
+        'fuse_scores.py    = bob.bio.base.script.fuse_scores:main',
       ],
 
       'bob.bio.database': [
