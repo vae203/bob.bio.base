@@ -65,6 +65,7 @@ def command_line_arguments(command_line_parameters):
   parser.add_argument('--cost', default=0.99,  help='Cost for FAR in minDCF')
   parser.add_argument('-r', '--rr', action = 'store_true', help = "If given, the Recognition Rate will be computed.")
   parser.add_argument('--rank', type=int, help = "If given, the Recognition Rate will be computed at the given rank; must be positive.")
+  parser.add_argument('-t', '--thresholds', type=float, nargs='+', help = "If given, the Recognition Rate will incorporate an Open Set handling, rejecting all scores that are below the given threshold; when multiple thresholds are given, they are applied in the same order as the --dev-files.")
   parser.add_argument('-l', '--legends', nargs='+', help = "A list of legend strings used for ROC, CMC and DET plots; if given, must be the same number than --dev-files.")
   parser.add_argument('-F', '--legend-font-size', type=int, default=18, help = "Set the font size of the legends.")
   parser.add_argument('-P', '--legend-position', type=int, help = "Set the font size of the legends.")
@@ -100,6 +101,14 @@ def command_line_arguments(command_line_parameters):
   if args.rank is not None and args.rank <= 0:
     logger.error("The given rank %d is invalid, it must be greater or equal to 1", args.rank)
 
+
+  if args.thresholds is not None:
+    if len(args.thresholds) == 1:
+      args.thresholds = args.thresholds * len(args.dev_files)
+    elif len(args.thresholds) != len(args.dev_files):
+      logger.error("If given, the number of --thresholds imust be either 1, or the same as --dev-files (%d), but it is %d", len(args.dev_files), len(args.thresholds))
+  else:
+    args.thresholds = [None] * len(args.dev_files)
 
   return args
 
@@ -343,30 +352,30 @@ def main(command_line_parameters=None):
         print("The average Rank %d Recognition Rate of the evaluation set is %2.3f%%" % (args.rank, numpy.mean(average_eval) * 100.))    
 
 
-  if args.cmc:
-    logger.info("Plotting CMC curves to file '%s'", args.cmc)
-    try:
-      # create a multi-page PDF for the ROC curve
-      pdf = PdfPages(args.cmc)
-      # create a separate figure for dev and eval
-      pdf.savefig(_plot_cmc(cmcs_dev, colors, args.legends, "CMC curve for development set", args.legend_font_size, args.legend_position))
-      if args.eval_files:
-        pdf.savefig(_plot_cmc(cmcs_eval, colors, args.legends, "CMC curve for evaluation set", args.legend_font_size, args.legend_position))
-      pdf.close()
-    except RuntimeError as e:
-      raise RuntimeError("During plotting of ROC curves, the following exception occured:\n%s\nUsually this happens when the label contains characters that LaTeX cannot parse." % e)
+    if args.cmc:
+      logger.info("Plotting CMC curves to file '%s'", args.cmc)
+      try:
+        # create a multi-page PDF for the ROC curve
+        pdf = PdfPages(args.cmc)
+        # create a separate figure for dev and eval
+        pdf.savefig(_plot_cmc(cmcs_dev, colors, args.legends, "CMC curve for development set", args.legend_font_size, args.legend_position))
+        if args.eval_files:
+          pdf.savefig(_plot_cmc(cmcs_eval, colors, args.legends, "CMC curve for evaluation set", args.legend_font_size, args.legend_position))
+        pdf.close()
+      except RuntimeError as e:
+        raise RuntimeError("During plotting of ROC curves, the following exception occured:\n%s\nUsually this happens when the label contains characters that LaTeX cannot parse." % e)
 
-  if args.rr:
-    logger.info("Computing recognition rate on the development " + ("and on the evaluation set" if args.eval_files else "set"))
+    if args.rr:
+      logger.info("Computing recognition rate on the development " + ("and on the evaluation set" if args.eval_files else "set"))
     average_dev, average_eval = [], []
-    for i in range(len(cmcs_dev)):
-      rr = bob.measure.recognition_rate(cmcs_dev[i])
+      for i in range(len(cmcs_dev)):
+        rr = bob.measure.recognition_rate(cmcs_dev[i], args.thresholds[i])
       average_dev.append(rr)
-      print("The Recognition Rate of the development set of '%s' is %2.3f%%" % (args.legends[i], rr * 100.))
-      if args.eval_files:
-        rr = bob.measure.recognition_rate(cmcs_eval[i])
-        average_eval.append(rr)
         print("The Recognition Rate of the development set of '%s' is %2.3f%%" % (args.legends[i], rr * 100.))
+        if args.eval_files:
+          rr = bob.measure.recognition_rate(cmcs_eval[i], args.thresholds[i])
+        average_eval.append(rr)
+          print("The Recognition Rate of the development set of '%s' is %2.3f%%" % (args.legends[i], rr * 100.))
 
     if args.average_results:
       print("The average Recognition Rate of the development set is %2.3f%%" % (numpy.mean(average_dev) * 100.))

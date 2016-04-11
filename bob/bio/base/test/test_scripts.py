@@ -63,7 +63,7 @@ def _verify(parameters, test_dir, sub_dir, ref_modifier="", score_modifier=('sco
     shutil.rmtree(test_dir)
 
 
-def test_verify_local():
+def test_verify_config():
   test_dir = tempfile.mkdtemp(prefix='bobtest_')
   # define dummy parameters
   parameters = [
@@ -72,14 +72,14 @@ def test_verify_local():
       '-e', os.path.join(dummy_dir, 'extractor.py'),
       '-a', os.path.join(dummy_dir, 'algorithm.py'),
       '--zt-norm',
-      '-vs', 'test_local',
+      '-vs', 'test_config',
       '--temp-directory', test_dir,
       '--result-directory', test_dir
   ]
 
   print (bob.bio.base.tools.command_line(parameters))
 
-  _verify(parameters, test_dir, 'test_local')
+  _verify(parameters, test_dir, 'test_config')
 
 
 def test_verify_resources():
@@ -91,6 +91,7 @@ def test_verify_resources():
       '-e', 'dummy',
       '-a', 'dummy',
       '--zt-norm',
+      '--allow-missing-files',
       '-vs', 'test_resource',
       '--temp-directory', test_dir,
       '--result-directory', test_dir,
@@ -113,7 +114,8 @@ def test_verify_commandline():
       '--zt-norm',
       '-vs', 'test_commandline',
       '--temp-directory', test_dir,
-      '--result-directory', test_dir
+      '--result-directory', test_dir,
+      '--imports', 'bob.bio.base.test.dummy'
   ]
 
   print (bob.bio.base.tools.command_line(parameters))
@@ -133,13 +135,14 @@ def test_verify_parallel():
       '-e', 'bob.bio.base.test.dummy.extractor.DummyExtractor()',
       '-a', 'dummy',
       '--zt-norm',
+      '--allow-missing-files',
       '-vs', 'test_parallel',
       '--temp-directory', test_dir,
       '--result-directory', test_dir,
       '-g', 'bob.bio.base.grid.Grid(grid_type = "local", number_of_parallel_processes = 2, scheduler_sleep_time = 0.1)',
       '-G', test_database, '--run-local-scheduler', '--stop-on-failure',
       '-D', 'success',
-      '--import', 'bob.io.image',
+      '--imports', 'bob.io.image', 'bob.bio.base.test.dummy',
       '--preferred-package', 'bob.bio.base'
   ]
 
@@ -202,7 +205,8 @@ def test_verify_fileset():
       '-vs', 'test_fileset',
       '--temp-directory', test_dir,
       '--result-directory', test_dir,
-      '--preferred-package', 'bob.bio.base'
+      '--preferred-package', 'bob.bio.base',
+      '--imports', 'bob.bio.base.test.dummy'
   ]
 
   print (bob.bio.base.tools.command_line(parameters))
@@ -261,6 +265,51 @@ def test_verify_filelist():
     shutil.rmtree(test_dir)
 
 
+def test_verify_missing():
+  try:
+    import bob.db.verification.filelist
+  except ImportError:
+    raise SkipTest("Skipping test since bob.db.verification.filelist is not available")
+  test_dir = tempfile.mkdtemp(prefix='bobtest_')
+  # define dummy parameters
+  parameters = [
+      '-d', 'dummy',
+      '-p', 'bob.bio.base.test.dummy.preprocessor.DummyPreprocessor(return_none=True)',
+      '-e', 'dummy',
+      '-a', 'dummy',
+      '--zt-norm',
+      '--allow-missing-files',
+      '-vs', 'test_missing',
+      '--temp-directory', test_dir,
+      '--result-directory', test_dir,
+      '--preferred-package', 'bob.bio.base',
+      '--imports', 'bob.bio.base.test.dummy'
+  ]
+
+  print (bob.bio.base.tools.command_line(parameters))
+
+  try:
+    from bob.bio.base.script.verify import main
+    main(parameters)
+
+    # assert that the score file exists
+    score_files = [os.path.join(test_dir, 'test_missing', 'Default', norm, 'scores-dev') for norm in ('nonorm', 'ztnorm')]
+    assert os.path.exists(score_files[0]), "Score file %s does not exist" % score_files[0]
+    assert os.path.exists(score_files[1]), "Score file %s does not exist" % score_files[1]
+
+    # assert that all scores are NaN
+
+    for i in (0,1):
+      # load scores
+      a, b = bob.measure.load.split_four_column(score_files[i])
+
+      assert numpy.all(numpy.isnan(a))
+      assert numpy.all(numpy.isnan(b))
+
+  finally:
+    shutil.rmtree(test_dir)
+
+
 def test_fusion():
   # tests that the fuse_scores script is doing something useful
   test_dir = tempfile.mkdtemp(prefix='bobtest_')
@@ -306,6 +355,8 @@ def test_evaluate():
     '--roc', plots[0],
     '--det', plots[1],
     '--cmc', plots[2],
+    '--rr',
+    '--thresholds', '5000', '0',
     '-v',
   ]
 
