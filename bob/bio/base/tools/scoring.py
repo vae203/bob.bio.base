@@ -140,19 +140,12 @@ def _scores_a(algorithm, model_ids, group, compute_zt_norm, force, write_compres
       logger.warn("Score file '%s' already exists.", score_file)
     else:
       # get probe files that are required for this model
-#      logger.debug("Getting probe objects for model %s", model_id)
-      current_probe_objects = fs.probe_objects_for_model(model_id, group)
       model_file = fs.model_file(model_id, group)
       if allow_missing_files and not os.path.exists(model_file):
-        logger.debug("Skipping model %s from file %s", model_id, model_file)
-        model = None
       else:
-        logger.debug("Reading model %s from file %s", model_id, model_file)
         model = algorithm.read_model(model_file)
       # get the probe files
-#      logger.debug("Getting paths of %d probe files", len(current_probe_objects))
       current_probe_files = fs.get_paths(current_probe_objects, 'projected' if algorithm.performs_projection else 'extracted')
-#      logger.debug("Computing scores")
       # compute scores
       a = _scores(algorithm, model, current_probe_files, allow_missing_files)
 
