@@ -367,14 +367,14 @@ def main(command_line_parameters=None):
 
     if args.rr:
       logger.info("Computing recognition rate on the development " + ("and on the evaluation set" if args.eval_files else "set"))
-    average_dev, average_eval = [], []
+      average_dev, average_eval = [], []
       for i in range(len(cmcs_dev)):
         rr = bob.measure.recognition_rate(cmcs_dev[i], args.thresholds[i])
-      average_dev.append(rr)
+        average_dev.append(rr)
         print("The Recognition Rate of the development set of '%s' is %2.3f%%" % (args.legends[i], rr * 100.))
         if args.eval_files:
           rr = bob.measure.recognition_rate(cmcs_eval[i], args.thresholds[i])
-        average_eval.append(rr)
+          average_eval.append(rr)
           print("The Recognition Rate of the development set of '%s' is %2.3f%%" % (args.legends[i], rr * 100.))
 
     if args.average_results:

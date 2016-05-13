@@ -140,8 +140,10 @@ def _scores_a(algorithm, model_ids, group, compute_zt_norm, force, write_compres
       logger.warn("Score file '%s' already exists.", score_file)
     else:
       # get probe files that are required for this model
+      current_probe_objects = fs.probe_objects_for_model(model_id, group)
       model_file = fs.model_file(model_id, group)
       if allow_missing_files and not os.path.exists(model_file):
+        model = None
       else:
         model = algorithm.read_model(model_file)
       # get the probe files
