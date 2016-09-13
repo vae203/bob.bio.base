@@ -58,7 +58,8 @@ def command_line_arguments(command_line_parameters):
   parser.add_argument('-C', '--cmc', help = "If given, CMC curves will be plotted into the given pdf file.")
   parser.add_argument('-E', '--epc', help = "If given, EPC curves will be plotted into the given pdf file. For this plot --eval-files is mandatory.")
   parser.add_argument('--parser', default = '4column', choices = ('4column', '5column'), help="The style of the resulting score files. The default fits to the usual output of score files.")
-
+  parser.add_argument('-i', '--invert-scores-sign', action = 'store_true', help = "If given, the sign of the scores will be inverted.")
+  
   # add verbose option
   bob.core.log.add_command_line_option(parser)
 
@@ -203,11 +204,28 @@ def main(command_line_parameters=None):
     # First, read the score files
     logger.info("Loading %d score files of the development set", len(args.dev_files))
     scores_dev = [score_parser(os.path.join(args.directory, f)) for f in args.dev_files]
+    
+    if args.invert_scores_sign:
+        scores_inv = []
+        for scores in scores_dev:
+            list_init = []
+            for item in scores:
+                list_init.append(-item)
+            scores_inv.append( tuple(list_init) )
+        scores_dev = scores_inv
 
     if args.eval_files:
       logger.info("Loading %d score files of the evaluation set", len(args.eval_files))
       scores_eval = [score_parser(os.path.join(args.directory, f)) for f in args.eval_files]
-
+      
+      if args.invert_scores_sign:
+        scores_inv = []
+        for scores in scores_eval:
+            list_init = []
+            for item in scores:
+                list_init.append(-item)
+            scores_inv.append( tuple(list_init) )
+        scores_eval = scores_inv
 
     if args.criterion:
       logger.info("Computing %s on the development " % args.criterion + ("and HTER on the evaluation set" if args.eval_files else "set"))
