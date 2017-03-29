@@ -7,7 +7,7 @@ import os
 
 from .. import utils
 
-class Extractor:
+class Extractor(object):
   """This is the base class for all feature extractors.
   It defines the minimum requirements that a derived feature extractor class need to implement.
 
@@ -43,14 +43,17 @@ class Extractor:
       split_training_data_by_client = False, # enable, if your extractor needs the training files sorted by client
       min_extractor_file_size=1000,
       min_feature_file_size=1000,
+      requires_seed = False,
       **kwargs                   # the parameters of the extractor, to be written in the __str__() method
   ):
+    super(Extractor, self).__init__()
     # Each class needs to have a constructor taking
     # all the parameters that are required for the feature extraction as arguments
     self.requires_training = requires_training
     self.split_training_data_by_client = split_training_data_by_client
     self.min_extractor_file_size = min_extractor_file_size
     self.min_feature_file_size = min_feature_file_size
+    self.requires_seed = requires_seed
     self._kwargs = kwargs
 
 

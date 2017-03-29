@@ -108,6 +108,7 @@ class FileSelector(object):
   ### List of files that will be used for all files
   def original_data_list(self, groups = None):
     """Returns the list of original ``BioFile`` objects that can be used for preprocessing."""
+    # NEED TO GET client_ids FROM HERE
     return self.database.all_files(groups=groups)
 
   def original_directory_and_extension(self):

@@ -42,9 +42,9 @@ def preprocess(preprocessor, groups = None, indices = None, allow_missing_files 
   fs = FileSelector.instance()
 
   # get the file lists
-  data_files = fs.original_data_list(groups=groups)
+  data_files = fs.original_data_list(groups=groups) # THE ACTUAL FILE OBJECTS
   original_directory, original_extension = fs.original_directory_and_extension()
-  preprocessed_data_files = fs.preprocessed_data_list(groups=groups)
+  preprocessed_data_files = fs.preprocessed_data_list(groups=groups) # JUST THE FILE NAMES, BUT NOT THE ACTUAL FILE OJECTS
 
   # select a subset of keys to iterate
   if indices is not None:
@@ -62,13 +62,14 @@ def preprocess(preprocessor, groups = None, indices = None, allow_missing_files 
   for i in index_range:
     preprocessed_data_file = preprocessed_data_files[i]
     file_object = data_files[i]
+    #print "Client ID = %s" % (file_object.client_id)
     file_name = file_object.make_path(original_directory, original_extension)
 
     # check for existence
     if not utils.check_file(preprocessed_data_file, force,
                             preprocessor.min_preprocessed_file_size):
       logger.debug("... Processing original data file '%s'", file_name)
-      data = preprocessor.read_original_data(file_object, original_directory, original_extension)
+      data = preprocessor.read_original_data(file_object, original_directory, original_extension) # this is the ORIGINAL biometric data (e.g., image), WILL NEED TO MODIFY THIS FUNCTION TO RETURN client_id TOO
       # create output directory before reading the data file (is sometimes required, when relative directories are specified, especially, including a .. somewhere)
       bob.io.base.create_directories_safe(os.path.dirname(preprocessed_data_file))
 
@@ -76,7 +77,7 @@ def preprocess(preprocessor, groups = None, indices = None, allow_missing_files 
       annotations = fs.get_annotations(annotation_list[i])
 
       # call the preprocessor
-      preprocessed_data = preprocessor(data, annotations)
+      preprocessed_data = preprocessor(data, annotations) # THIS IS THE ACTUAL PREPROCESSED DATA, NEED TO ADD ANOTHER OUTPUT (client_id) HERE
       if preprocessed_data is None:
         if allow_missing_files:
           logger.debug("... Processing original data file '%s' was not successful", file_name)
@@ -85,7 +86,7 @@ def preprocess(preprocessor, groups = None, indices = None, allow_missing_files 
         continue
 
       # write the data
-      preprocessor.write_data(preprocessed_data, preprocessed_data_file)
+      preprocessor.write_data(preprocessed_data, preprocessed_data_file) 
 
     else:
       logger.debug("... Skipping original data file '%s' since preprocessed data '%s' exists", file_name, preprocessed_data_file)
@@ -93,6 +94,8 @@ def preprocess(preprocessor, groups = None, indices = None, allow_missing_files 
 
 
 def read_preprocessed_data(file_names, preprocessor, split_by_client = False, allow_missing_files = False):
+  # NEED TO MODIFY THIS FUNCTION TO READ IN THE client_id TOO
+
   """read_preprocessed_data(file_names, preprocessor, split_by_client = False) -> preprocessed
 
   Reads the preprocessed data from ``file_names`` using the given preprocessor.
@@ -117,6 +120,7 @@ def read_preprocessed_data(file_names, preprocessor, split_by_client = False, al
 
   preprocessed : [object] or [[object]]
     The list of preprocessed data, in the same order as in the ``file_names``.
+
   """
   file_names = utils.filter_missing_files(file_names, split_by_client, allow_missing_files and preprocessor.writes_data)
 

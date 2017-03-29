@@ -61,6 +61,9 @@ class Preprocessor:
         data : object
           The *preprocessed* data, usually a :py:class:`numpy.ndarray`, but might be different.
         """
+
+        # WILL ALSO NEED TO RETURN client_id HERE
+
         raise NotImplementedError("Please overwrite this function in your derived class")
 
     def __str__(self):
@@ -89,6 +92,9 @@ class Preprocessor:
         data : object
           The preprocessed data, i.e., what is returned from `__call__`.
 
+
+        # WILL NEED TO ALSO SAVE client_id HERE?
+
         data_file : str or :py:class:`bob.io.base.HDF5File`
           The file open for writing, or the name of the file to write.
         """
@@ -111,4 +117,7 @@ class Preprocessor:
         data : object (usually :py:class:`numpy.ndarray`)
           The preprocessed data read from file.
         """
+
+        # WILL NEED TO ALSO RETURN client_id HERE?
+
         return utils.load(data_file)
