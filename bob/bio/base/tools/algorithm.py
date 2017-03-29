@@ -99,6 +99,7 @@ def project(algorithm, extractor, groups = None, indices = None, allow_missing_f
 
   feature_files = fs.feature_list(groups=groups)
   projected_files = fs.projected_list(groups=groups)
+  original_data_files = fs.original_data_list(groups=groups) # THE ACTUAL FILE OBJECTS 
 
   # select a subset of indices to iterate
   if indices is not None:
@@ -128,8 +129,16 @@ def project(algorithm, extractor, groups = None, indices = None, allow_missing_f
       bob.io.base.create_directories_safe(os.path.dirname(projected_file))
       # load feature
       feature = extractor.read_feature(feature_file)
-      # project feature
-      projected = algorithm.project(feature)
+      # project feature 
+      #projected = algorithm.project(feature)
+      # NEED TO MODIFY SO extractor TAKES user_seed AS INPUT TOO:
+      if algorithm.requires_seed:
+        file_object = original_data_files[i]
+        user_seed = sum(ord(char) for char in file_object.client_id) # convert each character in person's name to its ASCII integer, then sum the integers
+        print "user_seed for %s = %s" % (file_object.client_id, user_seed)
+        projected = algorithm.project(feature, user_seed) # protected projected feature
+      else:
+        projected = algorithm.project(feature) # unprotected projected feature
 
       if projected is None:
         if allow_missing_files:

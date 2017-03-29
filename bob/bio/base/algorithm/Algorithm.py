@@ -77,6 +77,7 @@ class Algorithm:
       split_training_features_by_client = False, # enable if your projector training needs the training files sorted by client
       use_projected_features_for_enrollment = True, # by default, the enroller used projected features for enrollment, if projection is enabled.
       requires_enroller_training = False, # enable if your enroller needs training
+      requires_seed = False,  # ADDED BY VEDRANA FOR BIOHASHING
 
       multiple_model_scoring = 'average', # by default, compute the average between several models and the probe
       multiple_probe_scoring = 'average', # by default, compute the average between the model and several probes
@@ -92,6 +93,7 @@ class Algorithm:
     self.split_training_features_by_client = split_training_features_by_client
     self.use_projected_features_for_enrollment = performs_projection and use_projected_features_for_enrollment
     self.requires_enroller_training = requires_enroller_training
+    self.requires_seed = requires_seed  # ADDED BY VEDRANA FOR BIOHASHING
     self.model_fusion_function = utils.score_fusion_strategy(multiple_model_scoring)
     self.probe_fusion_function = utils.score_fusion_strategy(multiple_probe_scoring)
     self.min_projector_file_size = min_projector_file_size

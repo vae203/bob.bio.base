@@ -134,6 +134,11 @@ class FileSelector(object):
     """Returns the list of projected feature files."""
     return self.get_paths(self.database.all_files(groups=groups), "projected")
 
+  # ADDED BY VEDRANA:
+  def protected_list(self, groups = None):
+    """Returns the list of protected feature files."""
+    return self.get_paths(self.database.all_files(groups=groups), "protected")
+
 
   ### Training lists
   def training_list(self, directory_type, step, arrange_by_client = False):
