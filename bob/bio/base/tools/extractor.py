@@ -88,7 +88,8 @@ def extract(extractor, preprocessor, groups=None, indices = None, allow_missing_
   # the file selector object
   fs = FileSelector.instance()
   extractor.load(fs.extractor_file)
-  data_files = fs.preprocessed_data_list(groups=groups)
+  original_data_files = fs.original_data_list(groups=groups) # THE ACTUAL FILE OBJECTS (line added by Vedrana)
+  data_files = fs.preprocessed_data_list(groups=groups) # JUST THE FILE NAMES, BUT NOT THE ACTUAL FILE OJECTS
   feature_files = fs.feature_list(groups=groups)
 
   # select a subset of indices to iterate
@@ -118,7 +119,17 @@ def extract(extractor, preprocessor, groups=None, indices = None, allow_missing_
       # load data
       data = preprocessor.read_data(data_file)
       # extract feature
-      feature = extractor(data)
+      # feature = extractor(data) # (line commented out by Vedrana)
+      # The following IF ... ELSE block was added by Vedrana
+      if extractor.requires_seed:
+        file_object = original_data_files[i]
+        #user_seed = int(file_object.client_id[0:3]) # for Verafinger database, the first 3 numbers are the numerical client ID
+        #user_seed = int(''.join(file_object.client_id.split('_'))) # e.g., for UTFVP, client_id 25_1 becomes user_seed 251
+        user_seed = int(''.join([str(ord(ch)-48) for ch in (''.join(file_object.client_id.split('_'))).encode('ascii')])) # e.g., client_id 25_1 becomes user_seed 251, client_id 001_L -> 001_28 -> user_seed 128        
+        print "user_seed for %s = %s" % (data_file, user_seed)
+        feature = extractor(data, user_seed) # protected feature
+      else:
+        feature = extractor(data) # unprotected feature
 
       if feature is None:
         if allow_missing_files:
