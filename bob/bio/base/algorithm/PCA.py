@@ -2,6 +2,10 @@
 # vim: set fileencoding=utf-8 :
 # Manuel Guenther <Manuel.Guenther@idiap.ch>
 
+import matplotlib; matplotlib.use('pdf') #avoids TkInter threaded start
+from matplotlib import pyplot
+from matplotlib.backends.backend_pdf import PdfPages
+
 import bob.learn.linear
 import bob.io.base
 
@@ -12,6 +16,7 @@ from .Algorithm import Algorithm
 
 import logging
 logger = logging.getLogger("bob.bio.base")
+
 
 class PCA (Algorithm):
   """Performs a principal component analysis (PCA) on the given data.
@@ -45,6 +50,7 @@ class PCA (Algorithm):
       distance_function = scipy.spatial.distance.euclidean,
       is_distance_function = True,
       uses_variances = False,
+      plot_dim_var = True,
       **kwargs  # parameters directly sent to the base class
   ):
 
@@ -65,12 +71,17 @@ class PCA (Algorithm):
     self.distance_function = distance_function
     self.factor = -1. if is_distance_function else 1.
     self.uses_variances = uses_variances
+    self.plot_dim_var = plot_dim_var
 
 
   def _check_feature(self, feature, projected=False):
     """Checks that the features are appropriate"""
-    if not isinstance(feature, numpy.ndarray) or feature.ndim != 1 or feature.dtype != numpy.float64:
-      raise ValueError("The given feature is not appropriate")
+    if not isinstance(feature, numpy.ndarray): 
+      raise ValueError("The given feature is not appropriate - the feature is not an instance of numpy.ndarray")
+    elif feature.ndim != 1:
+      raise ValueError("The given feature is not appropriate - the dimensionality of the feature is not 1")
+    elif feature.dtype != numpy.float64:
+      raise ValueError("The given feature is not appropriate - the feature is not of type numpy.float64")
     index = 1 if projected else 0
     if self.machine is not None and feature.shape[0] != self.machine.shape[index]:
       raise ValueError("The given feature is expected to have %d elements, but it has %d" % (self.machine.shape[index], feature.shape[0]))
@@ -87,7 +98,8 @@ class PCA (Algorithm):
     projector_file : str
       A writable file, into which the PCA projection matrix (as a :py:class:`bob.learn.linear.Machine`) and the eigenvalues will be written.
     """
-    # Assure that all data are 1D
+    # Ensure that all data are 1D
+    training_features = [feature.flatten() for feature in training_features if feature.ndim != 1] # flatten features to 1D
     [self._check_feature(feature) for feature in training_features]
 
     # Initializes the data
@@ -97,6 +109,20 @@ class PCA (Algorithm):
     self.machine, self.variances = t.train(data)
     # For re-shaping, we need to copy...
     self.variances = self.variances.copy()
+
+    # Plot number of dimensions versus % of variance
+    if self.plot_dim_var:
+      cumulated = (numpy.cumsum(self.variances) / numpy.sum(self.variances)) * 100
+      vert_dot_ln_x = numpy.repeat(cumulated[self.subspace_dim - 1], self.subspace_dim)
+      vert_dot_ln_y = range(0, self.subspace_dim)
+      horiz_dot_ln_x = numpy.arange(0, cumulated[self.subspace_dim - 1], 1)
+      horiz_dot_ln_y = numpy.repeat(self.subspace_dim, len(horiz_dot_ln_x))
+      pyplot.plot(cumulated, range(1, len(self.variances) + 1), vert_dot_ln_x, vert_dot_ln_y, 'r--', horiz_dot_ln_x, horiz_dot_ln_y, 'r--')
+      pyplot.axis([0, 100, 0, len(self.variances)])
+      pyplot.title('Percentage of Variance Remaining with %s PC Dimensions' % (self.subspace_dim))
+      pyplot.xlabel('Percentage of variance remaining')
+      pyplot.ylabel('Number of PC dimensions')
+      pyplot.show()
 
     # compute variance percentage, if desired
     if isinstance(self.subspace_dim, float):
@@ -148,6 +174,8 @@ class PCA (Algorithm):
     projected : 1D :py:class:`numpy.ndarray`
       The ``feature`` projected into eigenspace.
     """
+    if feature.ndim != 1:
+      feature = feature.flatten() # flatten feature to 1D
     self._check_feature(feature)
     # Projects the data
     return self.machine(feature)
