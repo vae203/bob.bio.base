@@ -102,7 +102,7 @@ def command_line_arguments(command_line_parameters):
 def _plot_roc(frrs, colors, labels, title, fontsize=18, position=None):
   if position is None: position = 4
   figure = pyplot.figure()
-  # plot FAR and CAR for each algorithm
+  # plot FMR and 1 - FNMR for each algorithm
   for i in range(len(frrs)):
     pyplot.semilogx([100.0*f for f in frrs[i][0]], [100. - 100.0*f for f in frrs[i][1]], color=colors[i], lw=2, ms=10, mew=1.5, label=labels[i])
 
@@ -110,8 +110,8 @@ def _plot_roc(frrs, colors, labels, title, fontsize=18, position=None):
   pyplot.plot([0.1,0.1],[0,100], "--", color=(0.3,0.3,0.3))
   pyplot.axis([frrs[0][0][0]*100,100,0,100])
   pyplot.xticks((0.01, 0.1, 1, 10, 100), ('0.01', '0.1', '1', '10', '100'))
-  pyplot.xlabel('FAR (\%)')
-  pyplot.ylabel('CAR (\%)')
+  pyplot.xlabel('FMR (\%)')
+  pyplot.ylabel('1 - FNMR (\%)')
   pyplot.grid(True, color=(0.6,0.6,0.6))
   pyplot.legend(loc=position, prop = {'size':fontsize})
   pyplot.title(title)
@@ -136,8 +136,8 @@ def _plot_det(dets, colors, labels, title, fontsize=18, position=None):
   pyplot.yticks(ticks, labels)
   pyplot.axis((ticks[0], ticks[-1], ticks[0], ticks[-1]))
 
-  pyplot.xlabel('FAR (\%)')
-  pyplot.ylabel('FRR (\%)')
+  pyplot.xlabel('FMR (\%)')
+  pyplot.ylabel('1 - FNMR (\%)')
   pyplot.legend(loc=position, prop = {'size':fontsize})
   pyplot.title(title)
 
