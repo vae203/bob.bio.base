@@ -14,13 +14,13 @@ For Bob_ to be able to work properly, some dependent packages are required to be
 Please make sure that you have read the `Dependencies <https://gitlab.idiap.ch/bob/bob/wikis/Dependencies>`_ for your operating system.
 
 .. note::
-  Currently, running Bob_ under MS Windows in not yet supported.
+  Running Bob_ under MS Windows in not yet supported.
   However, we found that running Bob_ in a virtual Unix environment such as the one provided by VirtualBox_ is a good alternative.
 
 Installation via pip
 ----------------------
 
-The most simple and most convenient way to use the ``bob.bio`` tools is to install it using `pip`.
+The most simple and most convenient way to use the ``bob.bio`` tools is to install it using ``pip``.
 After setting up your python environment (you can find the instructions `here <https://www.idiap.ch/software/bob/install>`_), use the sequence of commands to
 first search the ``bob.bio`` packages and then install it.
 
