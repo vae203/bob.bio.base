@@ -107,8 +107,8 @@ def _plot_roc(frrs, colors, labels, title, fontsize=18, position=None):
     pyplot.semilogx([100.0*f for f in frrs[i][0]], [100. - 100.0*f for f in frrs[i][1]], color=colors[i], lw=2, ms=10, mew=1.5, label=labels[i])
 
   # finalize plot
-  pyplot.plot([0.1,0.1],[0,100], "--", color=(0.3,0.3,0.3))
-  pyplot.axis([frrs[0][0][0]*100,100,0,100])
+  pyplot.plot([0.1,0.1],[0,105], "--", color=(0.3,0.3,0.3))
+  pyplot.axis([frrs[0][0][0]*100,100,0,105])
   pyplot.xticks((0.01, 0.1, 1, 10, 100), ('0.01', '0.1', '1', '10', '100'))
   pyplot.xlabel('FMR (\%)')
   pyplot.ylabel('1 - FNMR (\%)')
