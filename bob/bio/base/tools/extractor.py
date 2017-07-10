@@ -121,13 +121,11 @@ def extract(extractor, preprocessor, groups=None, indices = None, allow_missing_
       # extract feature
       # feature = extractor(data) # (line commented out by Vedrana)
       # The following IF ... ELSE block was added by Vedrana
-      if extractor.requires_seed:
+      if extractor.requires_protection:
         file_object = original_data_files[i]
-        #user_seed = int(file_object.client_id[0:3]) # for Verafinger database, the first 3 numbers are the numerical client ID
-        #user_seed = int(''.join(file_object.client_id.split('_'))) # e.g., for UTFVP, client_id 25_1 becomes user_seed 251
-        user_seed = int(''.join([str(ord(ch)-48) for ch in (''.join(file_object.client_id.split('_'))).encode('ascii')])) # e.g., client_id 25_1 becomes user_seed 251, client_id 001_L -> 001_28 -> user_seed 128        
-        print "user_seed for %s = %s" % (data_file, user_seed)
-        feature = extractor(data, user_seed) # protected feature
+        secret = int(''.join([str(ord(ch)-48) for ch in (''.join(file_object.client_id.split('_'))).encode('ascii')])) # e.g., client_id 25_1 becomes user_seed 251, client_id 001_L -> 001_28 -> user_seed 128        
+        print "secret for %s = %s" % (data_file, secret)
+        feature = extractor(data, secret) # protected feature
       else:
         feature = extractor(data) # unprotected feature
 

@@ -43,7 +43,7 @@ class Extractor (object):
       split_training_data_by_client = False, # enable, if your extractor needs the training files sorted by client
       min_extractor_file_size=1000,
       min_feature_file_size=1000,
-      requires_seed = False,
+      requires_protection = False,
       **kwargs                   # the parameters of the extractor, to be written in the __str__() method
   ):
     # Each class needs to have a constructor taking
@@ -52,7 +52,7 @@ class Extractor (object):
     self.split_training_data_by_client = split_training_data_by_client
     self.min_extractor_file_size = min_extractor_file_size
     self.min_feature_file_size = min_feature_file_size
-    self.requires_seed = requires_seed
+    self.requires_protection = requires_protection
     self._kwargs = kwargs
 
 
