@@ -137,7 +137,7 @@ def _plot_det(dets, colors, labels, title, fontsize=18, position=None):
   pyplot.axis((ticks[0], ticks[-1], ticks[0], ticks[-1]))
 
   pyplot.xlabel('FMR (\%)')
-  pyplot.ylabel('1 - FNMR (\%)')
+  pyplot.ylabel('FNMR (\%)')
   pyplot.legend(loc=position, prop = {'size':fontsize})
   pyplot.title(title)
 
