@@ -13,11 +13,17 @@ import bob.measure
 import argparse
 import numpy, math
 import os
+import scipy.stats
 
 # matplotlib stuff
 import matplotlib; matplotlib.use('pdf') #avoids TkInter threaded start
 from matplotlib import pyplot
 from matplotlib.backends.backend_pdf import PdfPages
+
+from scipy.stats import norm
+import statsmodels.api as sm
+import scipy.stats
+
 
 # enable LaTeX interpreter
 matplotlib.rc('text', usetex=True)
@@ -57,6 +63,7 @@ def command_line_arguments(command_line_parameters):
   parser.add_argument('-D', '--det', help = "If given, DET curves will be plotted into the given pdf file.")
   parser.add_argument('-C', '--cmc', help = "If given, CMC curves will be plotted into the given pdf file.")
   parser.add_argument('-E', '--epc', help = "If given, EPC curves will be plotted into the given pdf file. For this plot --eval-files is mandatory.")
+  parser.add_argument('-GID', '--GIdistr', help = "If given, the genuine and impostor score distributions will be plotted into the given pdf file.")
   parser.add_argument('--parser', default = '4column', choices = ('4column', '5column'), help="The style of the resulting score files. The default fits to the usual output of score files.")
 
   # add verbose option
@@ -166,7 +173,6 @@ def _plot_cmc(cmcs, colors, labels, title, fontsize=18, position=None):
   return figure
 
 
-
 def _plot_epc(scores_dev, scores_eval, colors, labels, title, fontsize=18, position=None):
   if position is None: position = 4
   # open new page for current plot
@@ -187,6 +193,131 @@ def _plot_epc(scores_dev, scores_eval, colors, labels, title, fontsize=18, posit
   return figure
 
 
+def _plot_distributions(imp_scores, gen_scores, title):
+  # Plots genuine and impostor score distributions
+  #position = 4
+  # open new page for current plot
+  figure = pyplot.figure()
+
+  # plot the genuine and impostor distributions
+  #pyplot.hist(imp_scores, bins='auto', color='red', normed=True)
+  #pyplot.hist(gen_scores, bins='auto', color='green', normed=True)
+
+  add_cnt = 1
+  # Impostor score probability distributions
+  imp_counts, imp_bin_edges = numpy.histogram(imp_scores, bins=numpy.arange(0.000, 1.005, 0.005))
+  # # Normalize it, so that every bins value gives the probability of that bin
+  # num_imp_bins = len(numpy.arange(0.00, 1.01, 0.01)) - 1
+  # imp_bin_probs = (imp_counts + add_cnt)/(float(len(imp_scores)) + add_cnt*num_imp_bins)
+  # print('Number of imp counts initially = %s' % (len(imp_scores)))
+  # print('Number of imp counts finally = %s' % (float(len(imp_scores)) + add_cnt*num_imp_bins))
+  imp_bin_probs = imp_counts/(float(len(imp_scores)))
+  # # Get the mid points of every bin
+  imp_bin_middles = (imp_bin_edges[1:]+imp_bin_edges[:-1])/float(2)
+  # # Compute the bin-width
+  imp_bin_width = imp_bin_edges[1]-imp_bin_edges[0]
+  pyplot.bar(imp_bin_middles, imp_bin_probs, width=imp_bin_width, color='red', alpha=0.4, label='Observed Impostor')
+
+  x_imp = numpy.linspace(min(imp_scores) - 0.05, max(imp_scores) + 0.05, 100)
+  mean_imp_bins = sum(imp_bin_middles * imp_counts) / sum(imp_counts)
+  #print('bin mean = %s' % (mean_imp_bins))
+  #print('scores mean = %s' % (numpy.mean(imp_scores)))
+  std_dev_imp_bins = math.sqrt(sum(((imp_bin_middles - mean_imp_bins) ** 2) * imp_counts) / sum(imp_counts))
+  #print('bin std dev = %s' % (std_dev_imp_bins))
+  #print('scores std dev = %s' % (numpy.std(imp_scores)))
+  imp_norm_pdf_values = norm.pdf(x_imp, mean_imp_bins, std_dev_imp_bins)
+  imp_scale = max(imp_bin_probs) / max(imp_norm_pdf_values)
+  imp_scaled_norm_pdf_values = imp_norm_pdf_values * imp_scale
+  pyplot.plot(x_imp, imp_scaled_norm_pdf_values, 'r-', lw=1, label='Normal Impostor')
+
+  # Genuine score probability distributions
+  gen_counts, gen_bin_edges = numpy.histogram(gen_scores, bins=numpy.arange(0.000, 1.005, 0.005))
+  # # Normalize it, so that every bins value gives the probability of that bin
+  # num_gen_bins = len(numpy.arange(0.00, 1.01, 0.01)) - 1
+  # gen_bin_probs = (gen_counts + add_cnt)/(float(len(gen_scores)) + add_cnt*num_gen_bins)
+  # print('Number of gen counts initially = %s' % (len(gen_scores)))
+  # print('Number of gen counts finally = %s' % (float(len(gen_scores)) + add_cnt*num_gen_bins))
+  gen_bin_probs = gen_counts/(float(len(gen_scores)))
+  # # Get the mid points of every bin
+  gen_bin_middles = (gen_bin_edges[1:]+gen_bin_edges[:-1])/float(2)
+  # # Compute the bin-width
+  gen_bin_width = gen_bin_edges[1]-gen_bin_edges[0]
+  pyplot.bar(gen_bin_middles, gen_bin_probs, width=gen_bin_width, color='green', alpha=0.4, label='Observed Genuine')
+
+  x_gen = numpy.linspace(min(gen_scores) - 0.05, max(gen_scores) + 0.05, 100)
+  mean_gen_bins = sum(gen_bin_middles * gen_counts) / sum(gen_counts)
+  #print('bin mean = %s' % (mean_gen_bins))
+  #print('scores mean = %s' % (numpy.mean(gen_scores)))
+  std_dev_gen_bins = math.sqrt(sum(((gen_bin_middles - mean_gen_bins) ** 2) * gen_counts) / sum(gen_counts))
+  #print('bin std dev = %s' % (std_dev_gen_bins))
+  #print('scores std dev = %s' % (numpy.std(gen_scores)))
+  gen_norm_pdf_values = norm.pdf(x_gen, mean_gen_bins, std_dev_gen_bins)
+  gen_scale = max(gen_bin_probs) / max(gen_norm_pdf_values)
+  gen_scaled_norm_pdf_values = gen_norm_pdf_values * gen_scale
+  pyplot.plot(x_gen, gen_scaled_norm_pdf_values, 'g-', lw=1, label='Normal Genuine')
+
+  # # Calculate relative entropy (Kellback-Leibler divergence):
+  # # Correct for zero probabilities in the two distributions
+  # P_temp = []
+  # Q_temp = []
+  # for ind in range(len(imp_bin_probs)):
+  #   #print(ind)
+  #   if (imp_bin_probs[ind] == 0) and (gen_bin_probs[ind] == 0):
+  #     #print('both zero')
+  #     continue
+  #   elif ((imp_bin_probs[ind] == 0) and (gen_bin_probs[ind] != 0)) or ((imp_bin_probs[ind] != 0) and (gen_bin_probs[ind] == 0)):
+  #     #print('one zero and the other non-zero')
+  #     Q_temp.append(imp_bin_probs[ind])
+  #     P_temp.append(gen_bin_probs[ind])
+  # #print('Q_temp: %s' % (Q_temp))
+  # #print('P_temp: %s' % (P_temp))
+  # epsilon = 10**(-100)
+  # num_zero_imp_probs = Q_temp.count(0)
+  # num_nonzero_imp_probs = len(Q_temp) - num_zero_imp_probs
+  # Q = numpy.array(Q_temp)
+  # Q[Q != 0] = Q[Q != 0] - epsilon*num_zero_imp_probs/num_nonzero_imp_probs
+  # Q[Q == 0] = epsilon
+  # num_zero_gen_probs = P_temp.count(0)
+  # num_nonzero_gen_probs = len(P_temp) - num_zero_gen_probs
+  # P = numpy.array(P_temp)
+  # P[P != 0] = P[P != 0] - epsilon*num_zero_gen_probs/num_nonzero_gen_probs
+  # P[P == 0] = epsilon
+  # #print('Q: %s' % (Q))
+  # #print('P: %s' % (P))
+  # # Calculate the relative entropy (KL divergence)
+  # #rel_entr = scipy.stats.entropy(P, Q)
+  # rel_entr = scipy.stats.entropy(gen_norm_pdf_values, imp_norm_pdf_values)
+  # print('Relative entropy = %s' % (rel_entr))
+
+  # # t_imp = scipy.stats.norm(mean_imp_bins, std_dev_imp_bins)
+  # # t_gen = scipy.stats.norm(mean_gen_bins, std_dev_gen_bins)
+
+  # # # domain to evaluate PDF on
+  # # x = numpy.linspace(0.000, 1.005, 200)
+
+  # # pyplot.plot(x, t_gen.pdf(x) * gen_scale, '-k')
+  # # pyplot.plot(x, t_imp.pdf(x) * imp_scale, '-b')
+
+  # # new_rel_entr = scipy.stats.entropy(t_gen.pdf(x), t_imp.pdf(x))
+  # # print('new_rel_entr = %s' % (new_rel_entr))
+
+  # # change axes accordingly
+  pyplot.xlabel('Match Score')
+  pyplot.ylabel('Probability')
+  pyplot.title(title)
+  pyplot.legend()
+
+  # #print(scipy.stats.mstats.normaltest(imp_scores))
+  # #print(scipy.stats.mstats.normaltest(gen_scaled_norm_pdf_values))
+
+  # Calculate relative entropy based on the Nearest-Neighbour estimator for KL-divergence
+  import relative_entropy as rl
+  rel_entr = rl.calc_NN_estimator(gen_scores, imp_scores)
+  print('Relative entropy based on NN-estimator = %s' % (rel_entr))
+
+  return figure
+
+
 
 def main(command_line_parameters=None):
   """Reads score files, computes error measures and plots curves."""
@@ -197,7 +328,7 @@ def main(command_line_parameters=None):
   cmap = pyplot.cm.get_cmap(name='hsv')
   colors = [cmap(i) for i in numpy.linspace(0, 1.0, len(args.dev_files)+1)]
 
-  if args.criterion or args.roc or args.det or args.epc or args.cllr or args.mindcf:
+  if args.criterion or args.roc or args.det or args.epc or args.cllr or args.mindcf or args.GIdistr:
     score_parser = {'4column' : bob.measure.load.split_four_column, '5column' : bob.measure.load.split_five_column}[args.parser]
 
     # First, read the score files
@@ -317,6 +448,16 @@ def main(command_line_parameters=None):
         raise RuntimeError("During plotting of EPC curves, the following exception occured:\n%s\nUsually this happens when the label contains characters that LaTeX cannot parse." % e)
 
 
+    if args.GIdistr:
+      logger.info("Computing genuine and impostor score distributions on the development " + ("and on the evaluation set" if args.eval_files else "set"))
+      imp_scores = scores_dev[0][0]
+      gen_scores = scores_dev[0][1]
+      logger.info("Plotting genuine and impostor distributions to file '%s'", args.GIdistr)
+      # create a multi-page PDF for the distributions
+      pdf = PdfPages(args.GIdistr)
+      # create a separate figure for dev and eval
+      pdf.savefig(_plot_distributions(imp_scores, gen_scores, args.title[0]))
+      pdf.close()
 
 
   if args.cmc or args.rr:
