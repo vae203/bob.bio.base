@@ -28,6 +28,9 @@ if not os.environ.get('BOB_NO_STYLE_CHANGES'):
 import bob.core
 logger = bob.core.log.setup("bob.bio.base")
 
+import scipy.stats
+from scipy.stats import norm
+
 
 def command_line_arguments(command_line_parameters):
   """Parse the program options"""
@@ -58,6 +61,7 @@ def command_line_arguments(command_line_parameters):
   parser.add_argument('-E', '--epc', help = "If given, EPC curves will be plotted into the given pdf file. For this plot --eval-files is mandatory.")
   parser.add_argument('-M', '--min-far-value', type=float, default=1e-4, help = "Select the minimum FAR value used in ROC plots; should be a power of 10.")
   parser.add_argument('-L', '--far-line-at', type=float, help = "If given, draw a veritcal line at this FAR value in the ROC plots.")
+  parser.add_argument('-GID', '--GIdistr', help = "If given, the genuine and impostor score distributions will be plotted into the given pdf file.")
 
   # add verbose option
   bob.core.log.add_command_line_option(parser)
@@ -207,6 +211,95 @@ def _plot_epc(scores_dev, scores_eval, colors, labels, title, fontsize=10, posit
   return figure
 
 
+def _plot_distributions(imp_scores, gen_scores, title):
+  # Plots genuine and impostor score distributions
+
+  print('Total number of gen scores = %s' % (len(gen_scores)))
+  print('Total number of imp scores = %s' % (len(imp_scores)))
+
+  # Remove all perfect match scores since they most likely indicate a comparison between a template with itself
+  perfect_match_score = 0.5 # Match score when template and probe match 100%
+  gen_scores = numpy.delete(gen_scores, numpy.where(gen_scores == 0.5)[0])
+  imp_scores = numpy.delete(imp_scores, numpy.where(imp_scores == 0.5)[0])
+  print('Total number of gen scores after removal of 0.5 = %s' % (len(gen_scores)))
+  print('Total number of imp scores after removal of 0.5 = %s' % (len(imp_scores)))
+
+  # open new page for current plot
+  figure = pyplot.figure()
+
+  # plot the genuine and impostor distributions
+  #pyplot.hist(imp_scores, bins='auto', color='red', normed=True)
+  #pyplot.hist(gen_scores, bins='auto', color='green', normed=True)
+
+  add_cnt = 1
+  # Impostor score probability distributions
+  imp_counts, imp_bin_edges = numpy.histogram(imp_scores, bins=numpy.arange(0.000, 1.005, 0.005))
+  # # Normalize it, so that every bins value gives the probability of that bin
+  # num_imp_bins = len(numpy.arange(0.00, 1.01, 0.01)) - 1
+  # imp_bin_probs = (imp_counts + add_cnt)/(float(len(imp_scores)) + add_cnt*num_imp_bins)
+  # print('Number of imp counts initially = %s' % (len(imp_scores)))
+  # print('Number of imp counts finally = %s' % (float(len(imp_scores)) + add_cnt*num_imp_bins))
+  imp_bin_probs = imp_counts/(float(len(imp_scores)))
+  # # Get the mid points of every bin
+  imp_bin_middles = (imp_bin_edges[1:]+imp_bin_edges[:-1])/float(2)
+  # # Compute the bin-width
+  imp_bin_width = imp_bin_edges[1]-imp_bin_edges[0]
+  pyplot.bar(imp_bin_middles, imp_bin_probs, width=imp_bin_width, color='red', alpha=0.4, label='Observed Impostor')
+
+  x_imp = numpy.linspace(min(imp_scores) - 0.05, max(imp_scores) + 0.05, 100)
+  mean_imp_bins = sum(imp_bin_middles * imp_counts) / sum(imp_counts)
+  #print('bin mean = %s' % (mean_imp_bins))
+  #print('scores mean = %s' % (numpy.mean(imp_scores)))
+  std_dev_imp_bins = math.sqrt(sum(((imp_bin_middles - mean_imp_bins) ** 2) * imp_counts) / sum(imp_counts))
+  #print('bin std dev = %s' % (std_dev_imp_bins))
+  #print('scores std dev = %s' % (numpy.std(imp_scores)))
+  imp_norm_pdf_values = norm.pdf(x_imp, mean_imp_bins, std_dev_imp_bins)
+  imp_scale = max(imp_bin_probs) / max(imp_norm_pdf_values)
+  imp_scaled_norm_pdf_values = imp_norm_pdf_values * imp_scale
+  pyplot.plot(x_imp, imp_scaled_norm_pdf_values, 'r-', lw=1, label='Normal Impostor')
+
+  # Genuine score probability distributions
+  gen_counts, gen_bin_edges = numpy.histogram(gen_scores, bins=numpy.arange(0.000, 1.005, 0.005))
+  # # Normalize it, so that every bins value gives the probability of that bin
+  # num_gen_bins = len(numpy.arange(0.00, 1.01, 0.01)) - 1
+  # gen_bin_probs = (gen_counts + add_cnt)/(float(len(gen_scores)) + add_cnt*num_gen_bins)
+  # print('Number of gen counts initially = %s' % (len(gen_scores)))
+  # print('Number of gen counts finally = %s' % (float(len(gen_scores)) + add_cnt*num_gen_bins))
+  gen_bin_probs = gen_counts/(float(len(gen_scores)))
+  # # Get the mid points of every bin
+  gen_bin_middles = (gen_bin_edges[1:]+gen_bin_edges[:-1])/float(2)
+  # # Compute the bin-width
+  gen_bin_width = gen_bin_edges[1]-gen_bin_edges[0]
+  pyplot.bar(gen_bin_middles, gen_bin_probs, width=gen_bin_width, color='green', alpha=0.4, label='Observed Genuine')
+
+  x_gen = numpy.linspace(min(gen_scores) - 0.05, max(gen_scores) + 0.05, 100)
+  mean_gen_bins = sum(gen_bin_middles * gen_counts) / sum(gen_counts)
+  #print('bin mean = %s' % (mean_gen_bins))
+  #print('scores mean = %s' % (numpy.mean(gen_scores)))
+  std_dev_gen_bins = math.sqrt(sum(((gen_bin_middles - mean_gen_bins) ** 2) * gen_counts) / sum(gen_counts))
+  #print('bin std dev = %s' % (std_dev_gen_bins))
+  #print('scores std dev = %s' % (numpy.std(gen_scores)))
+  gen_norm_pdf_values = norm.pdf(x_gen, mean_gen_bins, std_dev_gen_bins)
+  gen_scale = max(gen_bin_probs) / max(gen_norm_pdf_values)
+  gen_scaled_norm_pdf_values = gen_norm_pdf_values * gen_scale
+  pyplot.plot(x_gen, gen_scaled_norm_pdf_values, 'g-', lw=1, label='Normal Genuine')
+
+  pyplot.xlabel('Match Score')
+  pyplot.ylabel('Probability')
+  pyplot.title(title)
+  pyplot.legend()
+
+  # #print(scipy.stats.mstats.normaltest(imp_scores))
+  # #print(scipy.stats.mstats.normaltest(gen_scaled_norm_pdf_values))
+
+  # Calculate relative entropy based on the Nearest-Neighbour estimator for KL-divergence
+  import relative_entropy as rl
+  rel_entr = rl.calc_NN_estimator(gen_scores, imp_scores)
+  print('Relative entropy based on NN-estimator = %s' % (rel_entr))
+
+  return figure
+
+
 def remove_nan(scores):
     """removes the NaNs from the scores"""
     nans = numpy.isnan(scores)
@@ -242,7 +335,7 @@ def main(command_line_parameters=None):
               '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
               '#bcbd22', '#17becf']
 
-  if args.criterion or args.roc or args.det or args.epc or args.cllr or args.mindcf:
+  if args.criterion or args.roc or args.det or args.epc or args.cllr or args.mindcf or args.GIdistr:
 
     # First, read the score files
     logger.info("Loading %d score files of the development set", len(args.dev_files))
@@ -373,6 +466,20 @@ def main(command_line_parameters=None):
         raise RuntimeError("During plotting of EPC curves, the following exception occured:\n%s" % e)
 
 
+    if args.GIdistr:
+      logger.info("Computing genuine and impostor score distributions on the development " + ("and on the evaluation set" if args.eval_files else "set"))
+      if args.dev_files:
+        imp_scores = scores_dev[0][0]
+        gen_scores = scores_dev[0][1]
+      elif args.eval_files:
+        imp_scores = scores_eval[0][0]
+        gen_scores = scores_eval[0][1]        
+      logger.info("Plotting genuine and impostor distributions to file '%s'", args.GIdistr)
+      # create a multi-page PDF for the distributions
+      pdf = PdfPages(args.GIdistr)
+      # create a separate figure for dev and eval
+      pdf.savefig(_plot_distributions(imp_scores, gen_scores, args.title[0]))
+      pdf.close()
 
 
   if args.cmc or args.rr:
