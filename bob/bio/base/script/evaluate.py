@@ -137,7 +137,7 @@ def _plot_det(dets, colors, labels, title, fontsize=18, position=None):
   pyplot.axis((ticks[0], ticks[-1], ticks[0], ticks[-1]))
 
   pyplot.xlabel('FMR (\%)')
-  pyplot.ylabel('1 - FNMR (\%)')
+  pyplot.ylabel('FNMR (\%)')
   pyplot.legend(loc=position, prop = {'size':fontsize})
   pyplot.title(title)
 
@@ -272,10 +272,10 @@ def main(command_line_parameters=None):
         # create a multi-page PDF for the ROC curve
         pdf = PdfPages(args.roc)
         # create a separate figure for dev and eval
-        pdf.savefig(_plot_roc(frrs_dev, colors, args.legends, args.title[0] if args.title is not None else "ROC curve for development set", args.legend_font_size, args.legend_position))
+        pdf.savefig(_plot_roc(frrs_dev, colors, args.legends, args.title[0] if args.title is not None else "ROC curve for development set", args.legend_font_size, args.legend_position), bbox_inches='tight')
         del frrs_dev
         if args.eval_files:
-          pdf.savefig(_plot_roc(frrs_eval, colors, args.legends, args.title[1] if args.title is not None else "ROC curve for evaluation set", args.legend_font_size, args.legend_position))
+          pdf.savefig(_plot_roc(frrs_eval, colors, args.legends, args.title[1] if args.title is not None else "ROC curve for evaluation set", args.legend_font_size, args.legend_position), bbox_inches='tight')
           del frrs_eval
         pdf.close()
       except RuntimeError as e:
@@ -292,10 +292,10 @@ def main(command_line_parameters=None):
         # create a multi-page PDF for the ROC curve
         pdf = PdfPages(args.det)
         # create a separate figure for dev and eval
-        pdf.savefig(_plot_det(dets_dev, colors, args.legends, args.title[0] if args.title is not None else "DET plot for development set", args.legend_font_size, args.legend_position))
+        pdf.savefig(_plot_det(dets_dev, colors, args.legends, args.title[0] if args.title is not None else "DET plot for development set", args.legend_font_size, args.legend_position), bbox_inches='tight')
         del dets_dev
         if args.eval_files:
-          pdf.savefig(_plot_det(dets_eval, colors, args.legends, args.title[1] if args.title is not None else "DET plot for evaluation set", args.legend_font_size, args.legend_position))
+          pdf.savefig(_plot_det(dets_eval, colors, args.legends, args.title[1] if args.title is not None else "DET plot for evaluation set", args.legend_font_size, args.legend_position), bbox_inches='tight')
           del dets_eval
         pdf.close()
       except RuntimeError as e:

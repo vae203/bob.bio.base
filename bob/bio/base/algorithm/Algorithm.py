@@ -85,6 +85,9 @@ class Algorithm (object):
       min_enroller_file_size=1000,
       min_model_file_size=1000,
       min_t_model_file_size=1000,
+
+      requires_seed=False,
+
       **kwargs                            # parameters from the derived class that should be reported in the __str__() function
   ):
     self.performs_projection = performs_projection
@@ -100,6 +103,7 @@ class Algorithm (object):
     self.min_model_file_size = min_model_file_size
     self._kwargs = kwargs
     self._kwargs.update({'multiple_model_scoring':multiple_model_scoring, 'multiple_probe_scoring':multiple_probe_scoring})
+    self.requires_seed = requires_seed
 
 
   def __str__(self):

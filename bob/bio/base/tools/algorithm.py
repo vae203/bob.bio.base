@@ -99,6 +99,7 @@ def project(algorithm, extractor, groups = None, indices = None, allow_missing_f
 
   feature_files = fs.feature_list(groups=groups)
   projected_files = fs.projected_list(groups=groups)
+  original_data_files = fs.original_data_list(groups=groups) # THE ACTUAL FILE OBJECTS (line added by Vedrana)
 
   # select a subset of indices to iterate
   if indices is not None:
@@ -129,7 +130,14 @@ def project(algorithm, extractor, groups = None, indices = None, allow_missing_f
       # load feature
       feature = extractor.read_feature(feature_file)
       # project feature
-      projected = algorithm.project(feature)
+      if algorithm.requires_seed:
+        file_object = original_data_files[i]
+        user_seed = int(''.join([str(ord(ch)-48) for ch in (''.join(file_object.client_id.split('_'))).encode('ascii')])) # e.g., client_id 25_1 becomes user_seed 251, client_id 001_L -> 001_28 -> user_seed 128        
+        print "user_seed for %s = %s" % (feature_file, user_seed)
+        projected = algorithm.project(feature, user_seed) # protected feature
+      else:
+        projected = algorithm.project(feature) # unprotected feature
+      #projected = algorithm.project(feature)
 
       if projected is None:
         if allow_missing_files:
