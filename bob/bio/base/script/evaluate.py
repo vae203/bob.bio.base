@@ -195,7 +195,17 @@ def _plot_epc(scores_dev, scores_eval, colors, labels, title, fontsize=18, posit
 
 def _plot_distributions(imp_scores, gen_scores, title):
   # Plots genuine and impostor score distributions
-  #position = 4
+
+  print('Total number of gen scores = %s' % (len(gen_scores)))
+  print('Total number of imp scores = %s' % (len(imp_scores)))
+
+  # Remove all perfect match scores since they most likely indicate a comparison between a template with itself
+  perfect_match_score = 0.5 # Match score when template and probe match 100%
+  gen_scores = numpy.delete(gen_scores, numpy.where(gen_scores == 0.5)[0])
+  imp_scores = numpy.delete(imp_scores, numpy.where(imp_scores == 0.5)[0])
+  print('Total number of gen scores after removal of 0.5 = %s' % (len(gen_scores)))
+  print('Total number of imp scores after removal of 0.5 = %s' % (len(imp_scores)))
+
   # open new page for current plot
   figure = pyplot.figure()
 
@@ -450,8 +460,12 @@ def main(command_line_parameters=None):
 
     if args.GIdistr:
       logger.info("Computing genuine and impostor score distributions on the development " + ("and on the evaluation set" if args.eval_files else "set"))
-      imp_scores = scores_dev[0][0]
-      gen_scores = scores_dev[0][1]
+      if args.dev_files:
+        imp_scores = scores_dev[0][0]
+        gen_scores = scores_dev[0][1]
+      elif args.eval_files:
+        imp_scores = scores_eval[0][0]
+        gen_scores = scores_eval[0][1]        
       logger.info("Plotting genuine and impostor distributions to file '%s'", args.GIdistr)
       # create a multi-page PDF for the distributions
       pdf = PdfPages(args.GIdistr)
