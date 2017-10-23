@@ -89,7 +89,8 @@ setup(
       ],
 
       'bob.bio.database': [
-        'dummy             = bob.bio.base.test.dummy.database:database', # for test purposes only
+        'dummy              = bob.bio.base.test.dummy.database:database', # for test purposes only
+        'dummy-missingfiles = bob.bio.base.test.dummy.database_missingfiles:database', # for test purposes only        
       ],
 
       'bob.bio.preprocessor': [
