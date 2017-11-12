@@ -117,12 +117,13 @@ def _add_far_labels(min_far):
 
 
 def _plot_roc(frrs, colors, labels, title, fontsize=10, position=None, farfrrs=None):
+  colors, linestyles = colors
   if position is None: position = 'lower right'
   figure = pyplot.figure()
 
   # plot FAR and CAR for each algorithm
   for i in range(len(frrs)):
-    pyplot.semilogx([f for f in frrs[i][0]], [1. - f for f in frrs[i][1]], color=colors[i], label=labels[i])
+    pyplot.semilogx([f for f in frrs[i][0]], [1. - f for f in frrs[i][1]], color=colors[i], label=labels[i], linestyle=linestyles[i][1])
     if isinstance(farfrrs, list):
       pyplot.plot(farfrrs[i][0], (1.-farfrrs[i][1]), 'o', color=colors[i], markeredgecolor=colors[i])
 
@@ -231,6 +232,7 @@ def _plot_dir(cmc_scores, far_values, rank, colors, labels, title, fontsize=10, 
 
 
 def _plot_epc(scores_dev, scores_eval, colors, labels, title, fontsize=10, position=None):
+  colors, linestyles = colors
   if position is None: position = 'upper center'
   # open new page for current plot
   figure = pyplot.figure()
@@ -238,7 +240,7 @@ def _plot_epc(scores_dev, scores_eval, colors, labels, title, fontsize=10, posit
   # plot the DET curves
   for i in range(len(scores_dev)):
     x,y = bob.measure.epc(scores_dev[i][0], scores_dev[i][1], scores_eval[i][0], scores_eval[i][1], 100)
-    pyplot.plot(x, y, color=colors[i], label=labels[i])
+    pyplot.plot(x, y, color=colors[i], label=labels[i], linestyle=linestyles[i][1])
 
   # change axes accordingly
   pyplot.xlabel('alpha')
@@ -286,6 +288,22 @@ def main(command_line_parameters=None):
     colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728',
               '#9467bd', '#8c564b', '#e377c2', '#7f7f7f',
               '#bcbd22', '#17becf']
+    linestyles = [('solid',               (0, ())),
+                  # ('loosely dotted',      (0, (1, 10))),
+                  # ('dotted',              (0, (1, 5))),
+                  ('densely dotted',      (0, (1, 1))),
+
+                  # ('loosely dashed',      (0, (5, 10))),
+                  ('dashed',              (0, (5, 5))),
+                  ('densely dashed',      (0, (5, 1))),
+
+                  # ('loosely dashdotted',  (0, (3, 10, 1, 10))),
+                  # ('dashdotted',          (0, (3, 5, 1, 5))),
+                  ('densely dashdotted',  (0, (3, 1, 1, 1))),
+
+                  ('loosely dashdotdotted', (0, (3, 10, 1, 10, 1, 10))),
+                  ('dashdotdotted',         (0, (3, 5, 1, 5, 1, 5))),
+                  ('densely dashdotdotted', (0, (3, 1, 1, 1, 1, 1)))]
 
   if args.criterion or args.roc or args.det or args.epc or args.cllr or args.mindcf:
 
@@ -366,7 +384,7 @@ def main(command_line_parameters=None):
         # create a multi-page PDF for the ROC curve
         pdf = PdfPages(args.roc)
         # create a separate figure for dev and eval
-        pdf.savefig(_plot_roc(frrs_dev, colors, args.legends, args.title[0] if args.title is not None else "ROC for development set", args.legend_font_size, args.legend_position, args.far_line_at), bbox_inches='tight')
+        pdf.savefig(_plot_roc(frrs_dev, (colors, linestyles), args.legends, args.title[0] if args.title is not None else "ROC for development set", args.legend_font_size, args.legend_position, args.far_line_at), bbox_inches='tight')
         del frrs_dev
         if args.eval_files:
           if args.far_line_at is not None:
@@ -376,7 +394,7 @@ def main(command_line_parameters=None):
               farfrrs.append(bob.measure.farfrr(scores_eval[i][0], scores_eval[i][1], threshold))
           else:
             farfrrs = None
-          pdf.savefig(_plot_roc(frrs_eval, colors, args.legends, args.title[1] if args.title is not None else "ROC for evaluation set", args.legend_font_size, args.legend_position, farfrrs), bbox_inches='tight')
+          pdf.savefig(_plot_roc(frrs_eval, (colors, linestyles), args.legends, args.title[1] if args.title is not None else "ROC for evaluation set", args.legend_font_size, args.legend_position, farfrrs), bbox_inches='tight')
           del frrs_eval
         pdf.close()
       except RuntimeError as e:
@@ -412,7 +430,7 @@ def main(command_line_parameters=None):
       try:
         # create a multi-page PDF for the EPC curve
         pdf = PdfPages(args.epc)
-        pdf.savefig(_plot_epc(scores_dev, scores_eval, colors, args.legends, args.title[0] if args.title is not None else "" , args.legend_font_size, args.legend_position), bbox_inches='tight')
+        pdf.savefig(_plot_epc(scores_dev, scores_eval, (colors, linestyles), args.legends, args.title[0] if args.title is not None else "", args.legend_font_size, args.legend_position), bbox_inches='tight')
         pdf.close()
       except RuntimeError as e:
         raise RuntimeError("During plotting of EPC curves, the following exception occured:\n%s" % e)
