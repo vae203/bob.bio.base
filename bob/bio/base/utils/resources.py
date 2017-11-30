@@ -47,13 +47,14 @@ def _collect_config(paths):
 
   def _attach_resources(src, dst):
     for k in dir(src):
-      setattr(dst, k, getattr(src, k))
+      retval[k] = getattr(src, k)
 
   import random
 
-  name = "".join(random.sample(ascii_letters, 10))
-  retval = imp.new_module(name)
-
+  #name = "".join(random.sample(ascii_letters, 10))
+  #retval = imp.new_module(name)
+  retval = dict()
+  file_resources = []
   for path in paths:
     # execute the module code on the context of previously import modules
     for ep in pkg_resources.iter_entry_points('bob.bio.config'):
@@ -62,10 +63,9 @@ def _collect_config(paths):
         _attach_resources(tmp, retval)
         break
     else:
-
       # if you get to this point, then it is not a resource, maybe it is a module?
       try:
-        tmp = __import__(path, retval.__dict__, retval.__dict__, ['*'])
+        tmp = __import__(path, retval, retval, ['*'])
         _attach_resources(tmp, retval)
         continue
       except ImportError:
@@ -78,10 +78,14 @@ def _collect_config(paths):
       # it on the file system?
       if not os.path.exists(path):
         raise IOError("The configuration file, resource or module '%s' could not be found, loaded or imported" % path)
+      
+      # Stacking config files to load all at once so we can use the chain loading feature
+      file_resources.append(path)
 
-      name = "".join(random.sample(ascii_letters, 10))
-      tmp = imp.load_source(name, path)
-      _attach_resources(tmp, retval)
+  # Loading all config files at once
+  if len(file_resources) > 0:
+    from bob.extension.config import load
+    retval.update(load(file_resources))
 
   return retval
 
@@ -115,15 +119,19 @@ def read_config_file(filenames, keyword = None):
         "module name must be passed")
 
   config = _collect_config(filenames)
+  #from bob.extension.config import load
+  #config = load(filenames)
 
   if not keyword:
     return config
 
-  if not hasattr(config, keyword):
+  #if not hasattr(config, keyword):
+  if not keyword in config:
     raise ImportError("The desired keyword '%s' does not exist in any of " \
         "your configuration files: %s" %(keyword, ', '.join(filenames)))
 
-  return getattr(config, keyword)
+  #return getattr(config, keyword)
+  return config[keyword]
 
 
 def _get_entry_points(keyword, strip = [], package_prefix='bob.bio.'):
