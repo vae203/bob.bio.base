@@ -47,13 +47,12 @@ def _collect_config(paths):
 
   def _attach_resources(src, dst):
     for k in dir(src):
-      retval[k] = getattr(src, k)
+      setattr(dst, k, getattr(src, k))
 
   import random
 
-  #name = "".join(random.sample(ascii_letters, 10))
-  #retval = imp.new_module(name)
-  retval = dict()
+  name = "".join(random.sample(ascii_letters, 10))
+  retval = imp.new_module(name)
   file_resources = []
   for path in paths:
     # execute the module code on the context of previously import modules
@@ -65,7 +64,7 @@ def _collect_config(paths):
     else:
       # if you get to this point, then it is not a resource, maybe it is a module?
       try:
-        tmp = __import__(path, retval, retval, ['*'])
+        tmp = __import__(path, retval.__dict__, retval.__dict__, ['*'])
         _attach_resources(tmp, retval)
         continue
       except ImportError:
@@ -81,11 +80,13 @@ def _collect_config(paths):
       
       # Stacking config files to load all at once so we can use the chain loading feature
       file_resources.append(path)
-
+  
   # Loading all config files at once
+  #import ipdb; ipdb.set_trace()
   if len(file_resources) > 0:
     from bob.extension.config import load
-    retval.update(load(file_resources))
+    tmp = load(file_resources)    
+    _attach_resources(tmp, retval)
 
   return retval
 
@@ -119,19 +120,15 @@ def read_config_file(filenames, keyword = None):
         "module name must be passed")
 
   config = _collect_config(filenames)
-  #from bob.extension.config import load
-  #config = load(filenames)
 
   if not keyword:
     return config
 
-  #if not hasattr(config, keyword):
-  if not keyword in config:
+  if not hasattr(config, keyword):
     raise ImportError("The desired keyword '%s' does not exist in any of " \
         "your configuration files: %s" %(keyword, ', '.join(filenames)))
 
-  #return getattr(config, keyword)
-  return config[keyword]
+  return getattr(config, keyword)
 
 
 def _get_entry_points(keyword, strip = [], package_prefix='bob.bio.'):

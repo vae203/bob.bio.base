@@ -240,8 +240,8 @@ def take_from_config_or_command_line(args, config, keyword, default, required=Tr
                                                        imports=args.imports, package_prefix=args.package_prefix,
                                                        preferred_package=args.preferred_package))
 
-    elif config is not None and keyword in config:
-        val = config[keyword]
+    elif config is not None and hasattr(config, keyword):
+        val = getattr(config, keyword)
         if isinstance(val, str) and is_resource:
             val = utils.load_resource(val, keyword, imports=args.imports, package_prefix=args.package_prefix,
                                       preferred_package=args.preferred_package)
