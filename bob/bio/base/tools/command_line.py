@@ -285,7 +285,6 @@ def parse_config_file(parsers, args, args_dictionary, keywords, skips):
     # first, read the configuration file and set everything from the config file to the args -- as
     # long as not overwritten on command line
     config = utils.read_config_file(args.configuration_file) if args.configuration_file else None
-
     for keyword in ("database", "preprocessor", "extractor", "algorithm"):
         take_from_config_or_command_line(args, config, keyword,
                                          parser.get_default(keyword))
@@ -296,9 +295,6 @@ def parse_config_file(parsers, args, args_dictionary, keywords, skips):
     take_from_config_or_command_line(args, config, "sub_directory",
                                      parser.get_default("sub_directory"), is_resource=False)
                                      
-    take_from_config_or_command_line(args, config, "env",
-                                     parser.get_default("env"), is_resource=False)
-
     skip_keywords = tuple(['skip_' + k.replace('-', '_') for k in skips])
 
     for keyword in keywords + skip_keywords + ('execute_only',):
