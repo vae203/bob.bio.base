@@ -63,6 +63,7 @@ def command_line_arguments(command_line_parameters):
   parser.add_argument('-E', '--epc', help = "If given, EPC curves will be plotted into the given pdf file. For this plot --eval-files is mandatory.")
   parser.add_argument('-M', '--min-far-value', type=float, default=1e-4, help = "Select the minimum FAR value used in ROC plots; should be a power of 10.")
   parser.add_argument('-L', '--far-line-at', type=float, help = "If given, draw a veritcal line at this FAR value in the ROC plots.")
+  parser.add_argument('-S', '--line-styles', action = 'store_true', help = "If given, applies a different linestyle to each line.")
 
   # add verbose option
   bob.core.log.add_command_line_option(parser)
